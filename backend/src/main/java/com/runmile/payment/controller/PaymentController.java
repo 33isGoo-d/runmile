@@ -4,6 +4,7 @@ import com.runmile.global.ApiException;
 import com.runmile.infrastructure.payment.PaymentApproval;
 import com.runmile.infrastructure.payment.PaymentGatewayPort;
 import com.runmile.payment.dto.PaymentRequest;
+import jakarta.validation.Valid;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,12 +24,9 @@ public class PaymentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, Object> createPayment(@RequestBody PaymentRequest request) {
-        if (request.totalAmount() <= 0) {
-            throw new IllegalArgumentException("totalAmount must be greater than 0");
-        }
+    public Map<String, Object> createPayment(@Valid @RequestBody PaymentRequest request) {
         if (request.runmileAmount() < 0 || request.runmileAmount() > request.totalAmount()) {
-            throw new IllegalArgumentException("runmileAmount must be between 0 and totalAmount");
+            throw new IllegalArgumentException("RunMile 사용액은 결제 총액을 초과할 수 없습니다.");
         }
         if (request.runmileAmount() > 10000) {
             throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_RUNMILE", "RunMile 잔액이 부족합니다.");

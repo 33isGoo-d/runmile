@@ -1,4 +1,6 @@
 package com.runmile.infrastructure.payment;
 
-public record PaymentApproval(String status) {
+import com.runmile.global.type.PaymentStatus;
+
+public record PaymentApproval(PaymentStatus status) {
 }
