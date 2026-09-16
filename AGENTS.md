@@ -33,6 +33,17 @@ Do not replace the existing repository structure with a new architecture. If an 
 - Do not move to the next feature while the current behavior remains unverified.
 - When a task is too large for one focused pull request, split it into multiple Issues before implementation.
 
+## Communication Language
+
+- 사용자 및 팀원이 읽는 작업 설명, 진행 보고, Issue, PR 제목과 본문, 커밋 요약은 한글로 작성한다.
+- 코드 식별자, API 필드, 공통 Enum 값, 라이브러리 및 기술 명칭은 기존 영문 계약을 유지한다.
+
+## GitHub Numbering
+
+- Issue 번호와 PR 번호는 서로 다른 번호다. 예를 들어 Issue `#1`을 처리하는 PR이 `#2`일 수 있다.
+- 브랜치명과 커밋 메시지에는 연결된 Issue 번호를 사용하며 PR 번호를 사용하지 않는다.
+- PR 제목에는 번호 대신 작업 내용을 작성하고, PR 본문의 `Closes #<issue-number>`로 Issue를 연결한다.
+
 ## Fixed Demo Story
 
 Participant:

@@ -135,6 +135,17 @@ PR description should include:
 Closes #1
 ```
 
+Issue 번호와 PR 번호는 서로 별개다. GitHub 저장소의 생성 순서에 따라 Issue `#1` 다음에 만든 PR은 `#2`가 될 수 있다.
+
+```text
+연결된 Issue: #1
+생성된 PR:    #2
+브랜치 번호:  1  (Issue 번호 사용)
+커밋의 번호: #1  (Issue 번호 사용)
+```
+
+PR 제목에는 PR 번호나 Issue 번호만 적지 않고 작업 내용을 적는다. 연결할 Issue는 PR 본문의 `Closes #1`로 명시한다.
+
 Also include:
 
 - What changed
