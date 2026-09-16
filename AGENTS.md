@@ -23,6 +23,16 @@ Before meaningful code changes, read:
 
 Do not replace the existing repository structure with a new architecture. If an API or DB schema change is needed, explain the reason and impact before changing it.
 
+## Incremental Development
+
+- Break every feature into the smallest independently verifiable tasks practical.
+- Complete and verify one small behavior before starting the next one.
+- Keep each task small enough to include implementation, relevant tests, and contract or documentation checks.
+- Do not combine multiple unrelated features in one branch or pull request.
+- Make broad refactors or prerequisite changes only when they are required for the current Issue.
+- Do not move to the next feature while the current behavior remains unverified.
+- When a task is too large for one focused pull request, split it into multiple Issues before implementation.
+
 ## Fixed Demo Story
 
 Participant:
@@ -69,4 +79,3 @@ RunMile Impact Dashboard
 ## Integration Honesty
 
 Use `MockDaeguChainAdapter` and `MockDaeguPayAdapter`. Do not claim that real Daegu Chain, Daegu-ro Pay, iM Bank, or financial data integration is complete.
-

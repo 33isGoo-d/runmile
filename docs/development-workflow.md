@@ -14,7 +14,36 @@ One branch should usually work on one issue.
 
 One PR should usually close one issue.
 
-## 3. Branch Naming
+## 3. Small-Batch Development
+
+RunMile is developed by completing small, independently verifiable tasks in sequence.
+
+1. Split each feature into the smallest unit that produces one clear result.
+2. Give each Issue one outcome and an explicit completion condition.
+3. Use one branch for one Issue.
+4. Keep each PR focused on one feature or one change purpose.
+5. Complete the relevant build and tests before starting the next task.
+6. For shared contracts such as REST APIs and database schemas, update the documentation first and share the change with the team.
+
+As a practical guideline, an Issue should usually be small enough to finish within half a day. Split an Issue when it combines multiple areas such as:
+
+- Database schema changes
+- Backend API implementation
+- Frontend screen integration
+- AI batch or analysis logic
+
+For example, do not implement the entire RunMile issuance feature as one task. Split it into focused Issues such as:
+
+1. Confirm the issuance API request and response contract.
+2. Implement the wallet JPA entity and repository.
+3. Implement completion eligibility validation.
+4. Connect the NFT verification Mock Adapter.
+5. Save the issuance transaction.
+6. Prevent duplicate issuance.
+7. Add issuance API integration tests.
+8. Connect the frontend issuance action.
+
+## 4. Branch Naming
 
 Use this short branch naming format:
 
@@ -46,7 +75,7 @@ Avoid:
 feat/be/#1-wallet
 ```
 
-## 4. Type
+## 5. Type
 
 Use one of:
 
@@ -59,7 +88,7 @@ chore     setup, dependency, config, cleanup
 test      test code
 ```
 
-## 5. Area
+## 6. Area
 
 Use one of:
 
@@ -72,7 +101,7 @@ docs     documentation
 common   cross-area or project-wide work
 ```
 
-## 6. Commit Message
+## 7. Commit Message
 
 Use this format:
 
@@ -92,7 +121,7 @@ docs(common): update API and DB contracts (#8)
 
 Commits do not need to be perfect, but they should make it clear which issue they belong to.
 
-## 7. Pull Request
+## 8. Pull Request
 
 PR title should mirror the issue/task:
 
@@ -112,7 +141,7 @@ Also include:
 - How it was tested
 - Any known limitation
 
-## 8. Working With Docs
+## 9. Working With Docs
 
 Before implementing, check:
 
@@ -126,7 +155,7 @@ docs/ai-methodology.md
 
 Do not silently change API or DB contracts. If a contract change is needed, update the relevant docs in the same PR.
 
-## 9. Prototype Scope
+## 10. Prototype Scope
 
 Do not add infrastructure that is outside the prototype scope unless the team agrees first.
 
