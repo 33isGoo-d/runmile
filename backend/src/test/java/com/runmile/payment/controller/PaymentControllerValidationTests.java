@@ -34,7 +34,7 @@ class PaymentControllerValidationTests {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("runnerId: must not be null"));
+                .andExpect(jsonPath("$.message").value("참가자 ID는 필수입니다."));
 
         verifyNoInteractions(paymentGatewayPort);
     }
@@ -53,7 +53,7 @@ class PaymentControllerValidationTests {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("totalAmount: must be greater than 0"));
+                .andExpect(jsonPath("$.message").value("결제 총액은 0보다 커야 합니다."));
 
         verifyNoInteractions(paymentGatewayPort);
     }

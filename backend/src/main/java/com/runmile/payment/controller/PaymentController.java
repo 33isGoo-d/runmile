@@ -26,7 +26,7 @@ public class PaymentController {
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> createPayment(@Valid @RequestBody PaymentRequest request) {
         if (request.runmileAmount() < 0 || request.runmileAmount() > request.totalAmount()) {
-            throw new IllegalArgumentException("runmileAmount must be between 0 and totalAmount");
+            throw new IllegalArgumentException("RunMile 사용액은 결제 총액을 초과할 수 없습니다.");
         }
         if (request.runmileAmount() > 10000) {
             throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_RUNMILE", "RunMile 잔액이 부족합니다.");

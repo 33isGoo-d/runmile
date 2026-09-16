@@ -26,6 +26,6 @@ class WalletControllerValidationTests {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.message").value("amount: must be greater than 0"));
+                .andExpect(jsonPath("$.message").value("지급액은 0보다 커야 합니다."));
     }
 }

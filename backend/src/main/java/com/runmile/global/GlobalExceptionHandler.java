@@ -44,6 +44,6 @@ public class GlobalExceptionHandler {
     }
 
     private String formatFieldError(FieldError error) {
-        return error.getField() + ": " + error.getDefaultMessage();
+        return error.getDefaultMessage();
     }
 }
