@@ -2,6 +2,7 @@ package com.runmile.wallet.controller;
 
 import com.runmile.global.ApiException;
 import com.runmile.wallet.dto.RunMileIssueRequest;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class WalletController {
     @PostMapping("/{runnerId}/runmile/issue")
     @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, Object> issueRunMile(@PathVariable Long runnerId, @RequestBody(required = false) RunMileIssueRequest request) {
-        long amount = request == null ? 10000 : request.amount();
-        if (amount <= 0) {
-            throw new IllegalArgumentException("amount must be greater than 0");
-        }
+    public Map<String, Object> issueRunMile(@PathVariable Long runnerId, @Valid @RequestBody RunMileIssueRequest request) {
+        long amount = request.amount();
         if (runnerId != 1L) {
             throw new ApiException(HttpStatus.CONFLICT, "RUNMILE_ALREADY_ISSUED", "이미 완주 RunMile이 지급되었습니다.");
         }

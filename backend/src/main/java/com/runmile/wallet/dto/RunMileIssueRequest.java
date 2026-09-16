@@ -1,4 +1,7 @@
 package com.runmile.wallet.dto;
 
-public record RunMileIssueRequest(long amount) {
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+public record RunMileIssueRequest(@NotNull @Positive Long amount) {
 }
