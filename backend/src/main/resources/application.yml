@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: runmile-backend
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:runmile}
+    username: ${POSTGRES_USER:runmile}
+    password: ${POSTGRES_PASSWORD:runmile_dev_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+

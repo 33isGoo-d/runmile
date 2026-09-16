@@ -1,0 +1,47 @@
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/npm-debug.log*
+
+# Java / Gradle
+backend/build/
+backend/.gradle/
+backend/out/
+*.class
+
+# Python
+ai/.venv/
+ai/venv/
+ai/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated data and model artifacts
+data/raw/*
+data/synthetic/*
+data/processed/*
+data/results/*
+ai/models/*
+!data/raw/.gitkeep
+!data/synthetic/.gitkeep
+!data/processed/.gitkeep
+!data/results/.gitkeep
+!ai/models/.gitkeep
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+frontend/.env.local
+backend/src/main/resources/application-local.yml
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
