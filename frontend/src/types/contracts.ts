@@ -10,10 +10,21 @@ export type Runner = {
   course: Course;
 };
 
+export type Completion = { completed: boolean; course: Course; finishTimeSeconds: number; completedAt: string };
+export type NftRecord = { tokenId: string; network: string; verified: boolean };
+
 export type Wallet = {
   balance: number;
   totalIssued: number;
   totalUsed: number;
+};
+
+export type RunMileTransaction = {
+  id: number;
+  type: RunMileTransactionType;
+  amount: number;
+  paymentId: number | null;
+  createdAt: string;
 };
 
 export type Merchant = {
@@ -28,6 +39,14 @@ export type Merchant = {
   runmileEnabled: boolean;
 };
 
+export type Payment = {
+  paymentId: number;
+  totalAmount: number;
+  runmileAmount: number;
+  personalAmount: number;
+  status: PaymentStatus;
+};
+
 export type AnalyticsOverview = {
   scenario: Scenario;
   runmileBudget: number;
@@ -36,3 +55,27 @@ export type AnalyticsOverview = {
   estimatedIncrementalSales: number;
   effectRatio: number;
 };
+
+export type DistrictAnalytics = {
+  district: string;
+  runmileUsed: number;
+  linkedPaymentAmount: number;
+  personalPaymentAmount: number;
+  transactionCount: number;
+  merchantCount: number;
+};
+export type CategoryAnalytics = {
+  category: MerchantCategory;
+  runmileUsed: number;
+  linkedPaymentAmount: number;
+  transactionCount: number;
+};
+export type PolicyEffect = {
+  scopeType: "TOTAL" | "DISTRICT" | "CATEGORY";
+  scopeValue: string;
+  actualSales: number;
+  predictedBaseline: number;
+  estimatedIncrementalSales: number;
+  effectRatio: number;
+};
+export type Insight = { type: string; title: string; description: string };
