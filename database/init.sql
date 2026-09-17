@@ -15,7 +15,7 @@ CREATE TABLE completion (
 
 CREATE TABLE nft_record (
     id BIGSERIAL PRIMARY KEY,
-    runner_id BIGINT NOT NULL REFERENCES runner(id),
+    runner_id BIGINT NOT NULL UNIQUE REFERENCES runner(id),
     completion_id BIGINT NOT NULL UNIQUE REFERENCES completion(id),
     nft_token_id VARCHAR(128) NOT NULL UNIQUE,
     network VARCHAR(64) NOT NULL,

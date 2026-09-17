@@ -174,13 +174,22 @@ Stores marathon NFT verification status.
 
 ```text
 id               BIGINT PK
-runner_id        BIGINT FK NOT NULL
-completion_id    BIGINT FK NOT NULL
-nft_token_id     VARCHAR NOT NULL
+runner_id        BIGINT FK UNIQUE NOT NULL
+completion_id    BIGINT FK UNIQUE NOT NULL
+nft_token_id     VARCHAR UNIQUE NOT NULL
 network          VARCHAR NOT NULL
 verified         BOOLEAN NOT NULL
 issued_at        TIMESTAMP
 ```
+
+관계:
+
+```text
+runner 1 : 1 nft_record
+completion 1 : 1 nft_record
+```
+
+UNIQUE 제약으로 동일 참가자 또는 동일 완주 기록에 NFT 기록이 중복 생성되는 것을 방지한다.
 
 Prototype example:
 
