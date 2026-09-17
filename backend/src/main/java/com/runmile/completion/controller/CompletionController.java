@@ -1,9 +1,9 @@
 package com.runmile.completion.controller;
 
 import com.runmile.completion.dto.CompletionResponse;
+import com.runmile.completion.dto.NftVerificationResponse;
 import com.runmile.completion.service.CompletionService;
-import com.runmile.infrastructure.blockchain.BlockchainVerificationPort;
-import java.util.Map;
+import com.runmile.completion.service.NftVerificationService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,14 +13,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/runners")
 public class CompletionController {
     private final CompletionService completionService;
-    private final BlockchainVerificationPort blockchainVerificationPort;
+    private final NftVerificationService nftVerificationService;
 
     public CompletionController(
             CompletionService completionService,
-            BlockchainVerificationPort blockchainVerificationPort
+            NftVerificationService nftVerificationService
     ) {
         this.completionService = completionService;
-        this.blockchainVerificationPort = blockchainVerificationPort;
+        this.nftVerificationService = nftVerificationService;
     }
 
     @GetMapping("/{runnerId}/completion")
@@ -29,11 +29,7 @@ public class CompletionController {
     }
 
     @GetMapping("/{runnerId}/nft")
-    public Map<String, Object> getNft(@PathVariable Long runnerId) {
-        return Map.of(
-                "tokenId", "DAEGU-MARATHON-2026-%05d".formatted(runnerId),
-                "network", "DAEGU_CHAIN_MOCK",
-                "verified", blockchainVerificationPort.isNftVerified(runnerId)
-        );
+    public NftVerificationResponse getNft(@PathVariable Long runnerId) {
+        return nftVerificationService.getNftVerification(runnerId);
     }
 }
