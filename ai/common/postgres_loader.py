@@ -6,7 +6,6 @@ import pandas as pd
 import psycopg
 
 from common.config import (
-    AI_MERCHANT_ID_OFFSET,
     POSTGRES_DB,
     POSTGRES_HOST,
     POSTGRES_PASSWORD,
@@ -31,10 +30,8 @@ def _connect() -> psycopg.Connection:
 def _merchant_rows(merchants: pd.DataFrame) -> list[tuple]:
     rows = []
     for merchant in merchants.itertuples(index=False):
-        merchant_id = int(merchant.merchant_id) + AI_MERCHANT_ID_OFFSET
         rows.append(
             (
-                merchant_id,
                 f"AI_{merchant.merchant_code}",
                 f"합성 {merchant.district} {merchant.category} {merchant.merchant_id}",
                 merchant.district,
@@ -46,10 +43,10 @@ def _merchant_rows(merchants: pd.DataFrame) -> list[tuple]:
     return rows
 
 
-def _sales_rows(sales: pd.DataFrame) -> list[tuple]:
+def _sales_rows(sales: pd.DataFrame, merchant_ids: dict[int, int]) -> list[tuple]:
     return [
         (
-            int(row.merchant_id) + AI_MERCHANT_ID_OFFSET,
+            merchant_ids[int(row.merchant_id)],
             row.date,
             int(row.sales_amount),
             int(row.transaction_count),
@@ -63,10 +60,13 @@ def _sales_rows(sales: pd.DataFrame) -> list[tuple]:
     ]
 
 
-def _prediction_rows(predictions: pd.DataFrame) -> list[tuple]:
+def _prediction_rows(
+    predictions: pd.DataFrame,
+    merchant_ids: dict[int, int],
+) -> list[tuple]:
     return [
         (
-            int(row.merchant_id) + AI_MERCHANT_ID_OFFSET,
+            merchant_ids[int(row.merchant_id)],
             row.date,
             row.scenario,
             int(row.actual_sales),
@@ -98,6 +98,27 @@ def _policy_effect_rows(effects: pd.DataFrame) -> list[tuple]:
     return rows
 
 
+def _load_merchant_ids(
+    cursor: psycopg.Cursor,
+    merchants: pd.DataFrame,
+) -> dict[int, int]:
+    source_ids_by_code = {
+        f"AI_{merchant.merchant_code}": int(merchant.merchant_id)
+        for merchant in merchants.itertuples(index=False)
+    }
+    cursor.execute(
+        "SELECT id, merchant_code FROM merchant WHERE merchant_code = ANY(%s)",
+        (list(source_ids_by_code),),
+    )
+    merchant_ids = {
+        source_ids_by_code[merchant_code]: int(merchant_id)
+        for merchant_id, merchant_code in cursor.fetchall()
+    }
+    if len(merchant_ids) != len(source_ids_by_code):
+        raise RuntimeError("합성 가맹점 ID 매핑을 완성하지 못했습니다.")
+    return merchant_ids
+
+
 def load_results_to_postgres() -> None:
     merchants = pd.read_csv(SYNTHETIC_DIR / "merchants.csv")
     sales = pd.read_csv(SYNTHETIC_DIR / "merchant_daily_sales.csv")
@@ -108,10 +129,9 @@ def load_results_to_postgres() -> None:
         cursor.executemany(
             """
             INSERT INTO merchant (
-                id, merchant_code, name, district, category, address, runmile_enabled
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO UPDATE SET
-                merchant_code = EXCLUDED.merchant_code,
+                merchant_code, name, district, category, address, runmile_enabled
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (merchant_code) DO UPDATE SET
                 name = EXCLUDED.name,
                 district = EXCLUDED.district,
                 category = EXCLUDED.category,
@@ -120,6 +140,7 @@ def load_results_to_postgres() -> None:
             """,
             _merchant_rows(merchants),
         )
+        merchant_ids = _load_merchant_ids(cursor, merchants)
         cursor.executemany(
             """
             INSERT INTO merchant_daily_sales (
@@ -134,7 +155,7 @@ def load_results_to_postgres() -> None:
                 is_weekend = EXCLUDED.is_weekend,
                 is_marathon_day = EXCLUDED.is_marathon_day
             """,
-            _sales_rows(sales),
+            _sales_rows(sales, merchant_ids),
         )
         cursor.executemany(
             """
@@ -146,7 +167,7 @@ def load_results_to_postgres() -> None:
                 predicted_baseline = EXCLUDED.predicted_baseline,
                 created_at = now()
             """,
-            _prediction_rows(predictions),
+            _prediction_rows(predictions, merchant_ids),
         )
         cursor.executemany(
             """
@@ -167,11 +188,6 @@ def load_results_to_postgres() -> None:
             """,
             _policy_effect_rows(effects),
         )
-        cursor.execute(
-            "SELECT setval(pg_get_serial_sequence('merchant', 'id'), "
-            "GREATEST((SELECT MAX(id) FROM merchant), 1), true)"
-        )
-
     print(
         "Loaded "
         f"{len(merchants)} merchants, {len(sales)} sales rows, "

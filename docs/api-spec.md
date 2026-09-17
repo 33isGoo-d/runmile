@@ -157,17 +157,19 @@ Response:
     "type": "ISSUE",
     "amount": 10000,
     "paymentId": null,
-    "createdAt": "2026-09-18T10:00:00"
+    "createdAt": "2026-09-18T01:00:00Z"
   },
   {
     "id": 2,
     "type": "USE",
     "amount": 7000,
     "paymentId": 100,
-    "createdAt": "2026-09-18T12:30:00"
+    "createdAt": "2026-09-18T03:30:00Z"
   }
 ]
 ```
+
+`createdAt` is an ISO 8601 instant including the UTC offset. The frontend converts it to the viewer's local timezone.
 
 ## 8. Merchants
 
@@ -299,6 +301,8 @@ Response:
 }
 ```
 
+`effectRatio` is `null` when a ratio cannot be calculated because the predicted baseline is zero.
+
 Numbers are prototype simulation results and do not represent actual policy performance.
 
 ## 11. WHERE - District Analytics
@@ -363,6 +367,8 @@ Response:
   }
 ]
 ```
+
+Each effect's `effectRatio` can be `null` when its predicted baseline is zero.
 
 Important:
 

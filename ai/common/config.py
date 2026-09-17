@@ -13,8 +13,6 @@ POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
 POSTGRES_DB = os.getenv("POSTGRES_DB", "runmile")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "runmile")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "runmile_dev_password")
-AI_MERCHANT_ID_OFFSET = 1_000
-
 SCENARIOS = ("NONE", "LOW", "MEDIUM", "HIGH")
 MERCHANT_CATEGORIES = ("RESTAURANT", "CAFE", "RETAIL", "ACCOMMODATION", "OTHER")
 DISTRICTS = ("중구", "동구", "서구", "남구", "북구", "수성구", "달서구")

@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getApi, postApi, RunMileApiError } from "@/lib/api";
+import { formatWon, merchantCategoryLabel } from "@/lib/presentation";
 import type { Completion, Merchant, MerchantCategory, NftRecord, Payment, Runner, RunMileTransaction, Wallet } from "@/types/contracts";
 
 const RUNNER_ID = 1;
-const categories: Array<[MerchantCategory | "ALL", string]> = [["ALL", "전체"], ["RESTAURANT", "음식점"], ["CAFE", "카페"], ["RETAIL", "쇼핑"]];
-const won = (amount: number) => `${amount.toLocaleString("ko-KR")}원`;
+const categories: Array<MerchantCategory | "ALL"> = ["ALL", "RESTAURANT", "CAFE", "RETAIL"];
 const mile = (amount: number) => `${amount.toLocaleString("ko-KR")} RunMile`;
-const categoryName: Record<string, string> = { RESTAURANT: "음식점", CAFE: "카페", RETAIL: "쇼핑", ACCOMMODATION: "숙박", OTHER: "기타" };
 const courseName: Record<string, string> = { FULL: "풀코스", TEN_K: "10km", FIVE_K: "5km" };
 const courseDistance: Record<string, string> = { FULL: "42.195", TEN_K: "10", FIVE_K: "5" };
 
@@ -116,14 +115,14 @@ export default function ParticipantPage() {
 
       <section className="merchant-finder" id="merchants">
         <div className="section-intro"><div><h2>어디에서 쓸까요?</h2></div><button className="subtle-action" type="button">지도 보기</button></div>
-        <div className="filter-control" role="tablist" aria-label="가맹점 업종 필터">{categories.map(([value, label]) => <button key={value} className={category === value ? "selected" : ""} onClick={() => setCategory(value)}>{label}</button>)}</div>
+        <div className="filter-control" role="tablist" aria-label="가맹점 업종 필터">{categories.map((value) => <button key={value} className={category === value ? "selected" : ""} onClick={() => setCategory(value)}>{value === "ALL" ? "전체" : merchantCategoryLabel[value]}</button>)}</div>
         <div className="merchant-results">{filteredMerchants.map((merchant) => <button key={merchant.id} onClick={() => { setSelectedMerchant(merchant); setPayment(null); }} className={`merchant-result ${selectedMerchant?.id === merchant.id ? "selected" : ""}`}>
-          <span className="merchant-monogram">{merchant.name.slice(0, 1)}</span><span className="merchant-copy"><b>{merchant.name}</b><span>{categoryName[merchant.category]} · {merchant.district}</span><small>{merchant.address} · RunMile 사용 가능</small></span><span className="merchant-select-text">선택</span>
+          <span className="merchant-monogram">{merchant.name.slice(0, 1)}</span><span className="merchant-copy"><b>{merchant.name}</b><span>{merchantCategoryLabel[merchant.category]} · {merchant.district}</span><small>{merchant.address} · RunMile 사용 가능</small></span><span className="merchant-select-text">선택</span>
         </button>)}{filteredMerchants.length === 0 && <p className="merchant-empty">조건에 맞는 사용처가 없습니다.</p>}</div>
       </section>
 
       <section className="payment-area" aria-labelledby="payment-title"><div className="payment-header"><div><h2 id="payment-title">결제 미리보기</h2><p>{selectedMerchant?.name ?? "가맹점을 선택해 주세요"}</p></div>{selectedMerchant && <span>RunMile 사용 가능</span>}</div>
-        {payment ? <div className="payment-complete"><p>결제가 완료되었습니다</p><strong>{won(payment.totalAmount)}</strong><dl><div><dt>RunMile 사용</dt><dd>- {mile(payment.runmileAmount)}</dd></div><div><dt>개인결제</dt><dd>{won(payment.personalAmount)}</dd></div></dl><small>결제번호 {payment.paymentId}</small></div> : <div className="payment-content"><dl><div><dt>총 결제금액</dt><dd>{won(totalAmount)}</dd></div><div><dt>RunMile 사용</dt><dd className="brand-value">- {mile(runmileAmount)}</dd></div><div><dt>개인결제</dt><dd>{won(totalAmount - runmileAmount)}</dd></div></dl><button className="primary-action payment-action" onClick={pay} disabled={paying || !selectedMerchant || runmileAmount === 0}>{paying ? "결제 승인 중" : `${won(totalAmount)} 결제하기`}</button></div>}
+        {payment ? <div className="payment-complete"><p>결제가 완료되었습니다</p><strong>{formatWon(payment.totalAmount)}</strong><dl><div><dt>RunMile 사용</dt><dd>- {mile(payment.runmileAmount)}</dd></div><div><dt>개인결제</dt><dd>{formatWon(payment.personalAmount)}</dd></div></dl><small>결제번호 {payment.paymentId}</small></div> : <div className="payment-content"><dl><div><dt>총 결제금액</dt><dd>{formatWon(totalAmount)}</dd></div><div><dt>RunMile 사용</dt><dd className="brand-value">- {mile(runmileAmount)}</dd></div><div><dt>개인결제</dt><dd>{formatWon(totalAmount - runmileAmount)}</dd></div></dl><button className="primary-action payment-action" onClick={pay} disabled={paying || !selectedMerchant || runmileAmount === 0}>{paying ? "결제 승인 중" : `${formatWon(totalAmount)} 결제하기`}</button></div>}
       </section>
 
       <section className="usage-history"><div className="section-intro"><div><h2>RunMile 내역</h2></div><span>{transactions.length}건</span></div><div>{transactions.map((item) => <article className="usage-row" key={item.id}><div><b>{item.type === "ISSUE" ? "완주 보상" : "RunMile 사용"}</b><span>{new Date(item.createdAt).toLocaleString("ko-KR")}</span></div><strong className={item.type === "ISSUE" ? "brand-value" : ""}>{item.type === "ISSUE" ? "+" : "−"}{mile(item.amount)}</strong></article>)}</div></section>

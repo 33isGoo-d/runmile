@@ -134,7 +134,10 @@ public class AnalyticsService {
     }
 
     private List<Payment> successfulPayments() {
-        return paymentRepository.findAllByStatus(PaymentStatus.SUCCESS);
+        return paymentRepository.findAllByStatusAndRunmileAmountGreaterThan(
+                PaymentStatus.SUCCESS,
+                0L
+        );
     }
 
     private DistrictAnalyticsResponse toDistrict(String district, List<Payment> payments) {
