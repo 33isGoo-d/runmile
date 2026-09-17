@@ -4,7 +4,14 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from common.config import MARATHON_DATE, PROCESSED_DIR, RESULTS_DIR, RUNMILE_BUDGET_BY_SCENARIO, SCENARIOS, SYNTHETIC_DIR
+from common.config import (
+    MARATHON_DATE,
+    PROCESSED_DIR,
+    RESULTS_DIR,
+    RUNMILE_BUDGET_BY_SCENARIO,
+    SCENARIOS,
+    SYNTHETIC_DIR,
+)
 
 POLICY_EFFECT_COLUMNS = [
     "scenario",
@@ -28,12 +35,10 @@ def _load_marathon_day_predictions() -> pd.DataFrame:
     merchants = pd.read_csv(SYNTHETIC_DIR / "merchants.csv")
     ground_truth = pd.read_csv(RESULTS_DIR / "ground_truth.csv")
 
-    df = predictions.merge(
-        ground_truth[["merchant_id", "scenario", "linked_payment_amount", "runmile_used_amount"]],
-        on=["merchant_id", "scenario"],
-        how="inner",
-    )
-    return df.merge(merchants[["merchant_id", "district", "category", "group"]], on="merchant_id")
+    truth_columns = ["merchant_id", "scenario", "linked_payment_amount", "runmile_used_amount"]
+    df = predictions.merge(ground_truth[truth_columns], on=["merchant_id", "scenario"], how="inner")
+    merchant_columns = ["merchant_id", "district", "category", "group"]
+    return df.merge(merchants[merchant_columns], on="merchant_id")
 
 
 def _control_corrected_incremental(df: pd.DataFrame) -> pd.DataFrame:
@@ -87,7 +92,8 @@ def _aggregate(df: pd.DataFrame, scenario: str, scope_type: str, scope_col: str 
     if scope_type == "TOTAL":
         grouped["runmile_budget"] = scenario_budget
     elif total_used:
-        grouped["runmile_budget"] = (grouped["runmile_used"] / total_used * scenario_budget).round().astype(int)
+        budget_share = grouped["runmile_used"] / total_used * scenario_budget
+        grouped["runmile_budget"] = budget_share.round().astype(int)
     else:
         grouped["runmile_budget"] = 0
 
