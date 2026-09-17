@@ -93,6 +93,7 @@ def _aggregate(df: pd.DataFrame, scenario: str, scope_type: str, scope_col: str 
 
     grouped["scenario"] = scenario
     grouped["scope_type"] = scope_type
+    grouped["estimated_incremental_sales"] = grouped["estimated_incremental_sales"].round().astype(int)
     grouped["effect_ratio"] = (
         (grouped["predicted_baseline"] + grouped["estimated_incremental_sales"])
         / grouped["predicted_baseline"].replace(0, pd.NA)
