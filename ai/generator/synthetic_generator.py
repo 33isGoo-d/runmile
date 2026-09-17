@@ -137,6 +137,10 @@ def generate_daily_sales(
         expected_with_marathon = expected_normal * marathon_multiplier
         marathon_effect_amount = round(expected_with_marathon - expected_normal)
 
+        # Draw marathon-day noise once so scenarios represent the same day under
+        # different policies, not four independent random days.
+        marathon_day_noise = rng.normal(1.0, 0.05)
+
         for scenario in SCENARIOS:
             if merchant["group"] == "TREATMENT":
                 low, high = RUNMILE_EFFECT_RANGE[scenario]
@@ -147,8 +151,7 @@ def generate_daily_sales(
             expected_with_runmile = expected_with_marathon * runmile_multiplier
             runmile_effect_amount = round(expected_with_runmile - expected_with_marathon)
 
-            noise = rng.normal(1.0, 0.05)
-            actual = max(round(expected_with_runmile * noise), 0)
+            actual = max(round(expected_with_runmile * marathon_day_noise), 0)
 
             sales_rows.append(
                 {
