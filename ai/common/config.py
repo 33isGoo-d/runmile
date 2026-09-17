@@ -11,6 +11,11 @@ SCENARIOS = ("NONE", "LOW", "MEDIUM", "HIGH")
 MERCHANT_CATEGORIES = ("RESTAURANT", "CAFE", "RETAIL", "ACCOMMODATION", "OTHER")
 DISTRICTS = ("중구", "동구", "서구", "남구", "북구", "수성구", "달서구")
 
+# Fixed category codes for model features so encoding stays identical across
+# training, validation, and prediction (pandas' .cat.codes reorders per-subset).
+DISTRICT_CODE = {district: i for i, district in enumerate(DISTRICTS)}
+CATEGORY_CODE = {category: i for i, category in enumerate(MERCHANT_CATEGORIES)}
+
 # database/init.sql seeds the demo completion on this date; keep the synthetic
 # marathon day consistent with it so seed data and generated data agree.
 MARATHON_DATE = "2026-02-22"
