@@ -22,7 +22,7 @@ MARATHON_DATE = "2026-02-22"
 PRE_EVENT_WEEKS = 8
 RANDOM_SEED = 42
 
-MERCHANTS_PER_DISTRICT_CATEGORY = 3
+MERCHANTS_PER_DISTRICT_CATEGORY = 10
 TREATMENT_RATIO = 0.6
 
 # Simulation parameters for validation, not real-world policy claims.
