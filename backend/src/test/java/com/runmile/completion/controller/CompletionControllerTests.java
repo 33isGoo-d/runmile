@@ -6,10 +6,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.runmile.completion.dto.CompletionResponse;
+import com.runmile.completion.dto.NftVerificationResponse;
 import com.runmile.completion.service.CompletionService;
+import com.runmile.completion.service.NftVerificationService;
 import com.runmile.global.ApiException;
 import com.runmile.global.type.Course;
-import com.runmile.infrastructure.blockchain.BlockchainVerificationPort;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ class CompletionControllerTests {
     private CompletionService completionService;
 
     @MockBean
-    private BlockchainVerificationPort blockchainVerificationPort;
+    private NftVerificationService nftVerificationService;
 
     @Test
     void 완주_조회_응답을_반환한다() throws Exception {
@@ -61,13 +62,31 @@ class CompletionControllerTests {
     }
 
     @Test
-    void 기존_NFT_조회_동작을_유지한다() throws Exception {
-        when(blockchainVerificationPort.isNftVerified(1L)).thenReturn(true);
+    void NFT_조회_응답을_반환한다() throws Exception {
+        when(nftVerificationService.getNftVerification(1L)).thenReturn(new NftVerificationResponse(
+                "DAEGU-MARATHON-2026-00001",
+                "DAEGU_CHAIN_MOCK",
+                true
+        ));
 
         mockMvc.perform(get("/api/v1/runners/1/nft"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenId").value("DAEGU-MARATHON-2026-00001"))
                 .andExpect(jsonPath("$.network").value("DAEGU_CHAIN_MOCK"))
                 .andExpect(jsonPath("$.verified").value(true));
+    }
+
+    @Test
+    void NFT_기록이_없으면_404_오류를_반환한다() throws Exception {
+        when(nftVerificationService.getNftVerification(999L)).thenThrow(new ApiException(
+                HttpStatus.NOT_FOUND,
+                "NFT_NOT_FOUND",
+                "NFT 기록을 찾을 수 없습니다."
+        ));
+
+        mockMvc.perform(get("/api/v1/runners/999/nft"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NFT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("NFT 기록을 찾을 수 없습니다."));
     }
 }
