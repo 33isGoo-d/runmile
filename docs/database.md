@@ -409,7 +409,11 @@ estimated_incremental_sales  BIGINT NOT NULL
 effect_ratio                 DOUBLE PRECISION
 
 created_at                   TIMESTAMP NOT NULL
+
+UNIQUE (scenario, scope_type, scope_value)
 ```
+
+AI 배치를 다시 실행하면 동일한 시나리오·범위 결과를 UPSERT하여 최신 값으로 갱신한다.
 
 Scope examples:
 

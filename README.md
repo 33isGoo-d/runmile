@@ -59,19 +59,23 @@ feat/ai/5-synthetic-generator
 
 ## Quick Start
 
-```bash
-cd /Users/leejeongmin/runmile/frontend
-npm install
-npm run dev
-```
+아래 순서대로 실행하면 합성 데이터 생성부터 참가자/관리자 화면까지 한 번에 확인할 수 있습니다.
+
+### 1. PostgreSQL 실행
 
 ```bash
-cd /Users/leejeongmin/runmile/backend
-export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
-./gradlew bootRun
+cd /Users/leejeongmin/runmile
+docker compose up -d
 ```
 
+최초 실행 시 `database/init.sql`과 `database/seed.sql`이 자동 적용됩니다.
+
+### 2. AI 배치 실행
+
+macOS에서는 XGBoost 실행에 OpenMP 런타임이 필요합니다.
+
 ```bash
+brew install libomp
 cd /Users/leejeongmin/runmile/ai
 /opt/homebrew/bin/python3.12 -m venv .venv
 source .venv/bin/activate
@@ -79,14 +83,29 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Start local PostgreSQL:
+배치는 합성 데이터와 평가 결과를 만들고, 가맹점·일별 매출·정상매출 예측·정책 효과를 PostgreSQL에 UPSERT합니다. 재실행 시 기존 운영성 데이터를 삭제하지 않습니다.
+
+### 3. Backend 실행
 
 ```bash
-cd /Users/leejeongmin/runmile
-docker compose up -d
+cd /Users/leejeongmin/runmile/backend
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+./gradlew bootRun
 ```
 
-The backend is verified with Java 17. If your default `java` points to a newer JDK, set `JAVA_HOME` as shown above before using `./gradlew`.
+Backend API는 `http://localhost:8080/api/v1`에서 제공됩니다.
+
+### 4. Frontend 실행
+
+```bash
+cd /Users/leejeongmin/runmile/frontend
+npm install
+npm run dev
+```
+
+참가자 화면은 `http://localhost:3000/participant`, 관리자 화면은 `http://localhost:3000/admin`에서 확인합니다.
+
+Backend는 Java 17에서 검증했습니다. 기본 `java`가 다른 JDK를 가리키면 `./gradlew` 실행 전에 위와 같이 `JAVA_HOME`을 설정합니다.
 
 ## Demo Principles
 

@@ -1,4 +1,5 @@
 from common.config import RESULTS_DIR, SYNTHETIC_DIR
+from common.postgres_loader import load_results_to_postgres
 from effect.export_policy_effects import export_policy_effects
 from evaluation.evaluate_effect import evaluate_effect
 from generator.synthetic_generator import generate_all
@@ -22,6 +23,7 @@ def main() -> None:
     train_baseline()
     export_policy_effects()
     evaluate_effect()
+    load_results_to_postgres()
 
 
 if __name__ == "__main__":

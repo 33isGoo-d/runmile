@@ -104,7 +104,8 @@ CREATE TABLE policy_effect (
     predicted_baseline BIGINT NOT NULL CHECK (predicted_baseline >= 0),
     estimated_incremental_sales BIGINT NOT NULL,
     effect_ratio DOUBLE PRECISION,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (scenario, scope_type, scope_value)
 );
 
 CREATE INDEX idx_completion_runner_id ON completion(runner_id);
@@ -112,6 +113,9 @@ CREATE INDEX idx_nft_record_runner_id ON nft_record(runner_id);
 CREATE INDEX idx_runmile_wallet_runner_id ON runmile_wallet(runner_id);
 CREATE INDEX idx_runmile_transaction_wallet_id ON runmile_transaction(wallet_id);
 CREATE INDEX idx_runmile_transaction_payment_id ON runmile_transaction(payment_id);
+CREATE UNIQUE INDEX uq_runmile_transaction_wallet_issue
+    ON runmile_transaction(wallet_id)
+    WHERE type = 'ISSUE';
 CREATE INDEX idx_payment_runner_id ON payment(runner_id);
 CREATE INDEX idx_payment_merchant_id ON payment(merchant_id);
 CREATE INDEX idx_merchant_daily_sales_date ON merchant_daily_sales(date);

@@ -1,0 +1,169 @@
+package com.runmile.analytics.service;
+
+import com.runmile.analytics.domain.PolicyEffect;
+import com.runmile.analytics.dto.AnalyticsOverviewResponse;
+import com.runmile.analytics.dto.CategoryAnalyticsResponse;
+import com.runmile.analytics.dto.DistrictAnalyticsResponse;
+import com.runmile.analytics.dto.InsightResponse;
+import com.runmile.analytics.dto.PolicyEffectResponse;
+import com.runmile.analytics.repository.PolicyEffectRepository;
+import com.runmile.global.ApiException;
+import com.runmile.global.type.MerchantCategory;
+import com.runmile.global.type.PaymentStatus;
+import com.runmile.global.type.Scenario;
+import com.runmile.payment.domain.Payment;
+import com.runmile.payment.repository.PaymentRepository;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class AnalyticsService {
+    private final PaymentRepository paymentRepository;
+    private final PolicyEffectRepository policyEffectRepository;
+
+    public AnalyticsService(
+            PaymentRepository paymentRepository,
+            PolicyEffectRepository policyEffectRepository
+    ) {
+        this.paymentRepository = paymentRepository;
+        this.policyEffectRepository = policyEffectRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public AnalyticsOverviewResponse getOverview(Scenario scenario) {
+        PolicyEffect effect = policyEffectRepository
+                .findFirstByScenarioAndScopeTypeAndScopeValueOrderByIdDesc(
+                        scenario,
+                        "TOTAL",
+                        "ALL"
+                )
+                .orElseThrow(this::analyticsNotReady);
+        return AnalyticsOverviewResponse.from(effect);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DistrictAnalyticsResponse> getDistricts() {
+        Map<String, List<Payment>> grouped = successfulPayments().stream()
+                .collect(Collectors.groupingBy(
+                        payment -> payment.getMerchant().getDistrict(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return grouped.entrySet().stream()
+                .map(entry -> toDistrict(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparingLong(DistrictAnalyticsResponse::runmileUsed).reversed())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryAnalyticsResponse> getCategories() {
+        Map<MerchantCategory, List<Payment>> grouped = successfulPayments().stream()
+                .collect(Collectors.groupingBy(
+                        payment -> payment.getMerchant().getCategory(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return grouped.entrySet().stream()
+                .map(entry -> new CategoryAnalyticsResponse(
+                        entry.getKey(),
+                        sumRunMile(entry.getValue()),
+                        sumTotal(entry.getValue()),
+                        entry.getValue().size()
+                ))
+                .sorted(Comparator.comparingLong(CategoryAnalyticsResponse::runmileUsed).reversed())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PolicyEffectResponse> getEffects(Scenario scenario) {
+        return policyEffectRepository
+                .findAllByScenarioAndScopeTypeOrderByEstimatedIncrementalSalesDesc(
+                        scenario,
+                        "DISTRICT"
+                ).stream()
+                .map(PolicyEffectResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<InsightResponse> getInsights() {
+        List<DistrictAnalyticsResponse> districts = getDistricts();
+        if (districts.isEmpty()) {
+            return List.of(new InsightResponse(
+                    "NO_DATA",
+                    "결제 데이터 없음",
+                    "아직 RunMile 결제 데이터가 없습니다."
+            ));
+        }
+
+        long total = districts.stream()
+                .mapToLong(DistrictAnalyticsResponse::runmileUsed)
+                .sum();
+        List<DistrictAnalyticsResponse> top = districts.stream().limit(2).toList();
+        long topAmount = top.stream().mapToLong(DistrictAnalyticsResponse::runmileUsed).sum();
+        long share = total == 0 ? 0 : Math.round(topAmount * 100.0 / total);
+        String topNames = top.stream()
+                .map(DistrictAnalyticsResponse::district)
+                .collect(Collectors.joining("와 "));
+        DistrictAnalyticsResponse lowest = districts.stream()
+                .min(Comparator.comparingLong(DistrictAnalyticsResponse::runmileUsed))
+                .orElseThrow();
+
+        List<InsightResponse> insights = new ArrayList<>();
+        insights.add(new InsightResponse(
+                "CONCENTRATION",
+                "소비 집중",
+                topNames + "에 전체 RunMile 소비의 " + share + "%가 집중되었습니다."
+        ));
+        insights.add(new InsightResponse(
+                "LOW_USAGE",
+                "저사용 지역",
+                lowest.district() + "의 RunMile 사용액이 가장 낮습니다."
+        ));
+        return insights;
+    }
+
+    private List<Payment> successfulPayments() {
+        return paymentRepository.findAllByStatus(PaymentStatus.SUCCESS);
+    }
+
+    private DistrictAnalyticsResponse toDistrict(String district, List<Payment> payments) {
+        Set<Long> merchantIds = payments.stream()
+                .map(payment -> payment.getMerchant().getId())
+                .collect(Collectors.toSet());
+        return new DistrictAnalyticsResponse(
+                district,
+                sumRunMile(payments),
+                sumTotal(payments),
+                payments.stream().mapToLong(Payment::getPersonalAmount).sum(),
+                payments.size(),
+                merchantIds.size()
+        );
+    }
+
+    private long sumRunMile(List<Payment> payments) {
+        return payments.stream().mapToLong(Payment::getRunmileAmount).sum();
+    }
+
+    private long sumTotal(List<Payment> payments) {
+        return payments.stream().mapToLong(Payment::getTotalAmount).sum();
+    }
+
+    private ApiException analyticsNotReady() {
+        return new ApiException(
+                HttpStatus.NOT_FOUND,
+                "ANALYTICS_NOT_READY",
+                "AI 분석 결과가 아직 적재되지 않았습니다."
+        );
+    }
+}
