@@ -1,6 +1,7 @@
 package com.runmile.runner.controller;
 
-import java.util.Map;
+import com.runmile.runner.dto.RunnerResponse;
+import com.runmile.runner.service.RunnerService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,12 +10,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/runners")
 public class RunnerController {
+    private final RunnerService runnerService;
+
+    public RunnerController(RunnerService runnerService) {
+        this.runnerService = runnerService;
+    }
+
     @GetMapping("/{runnerId}")
-    public Map<String, Object> getRunner(@PathVariable Long runnerId) {
-        return Map.of(
-                "id", runnerId,
-                "runnerCode", "RUNNER_%05d".formatted(runnerId),
-                "course", "FULL"
-        );
+    public RunnerResponse getRunner(@PathVariable Long runnerId) {
+        return runnerService.getRunner(runnerId);
     }
 }
