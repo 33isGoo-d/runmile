@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.runmile.infrastructure.payment.PaymentGatewayPort;
+import com.runmile.payment.service.PaymentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,7 +19,7 @@ class PaymentControllerValidationTests {
     private MockMvc mockMvc;
 
     @MockBean
-    private PaymentGatewayPort paymentGatewayPort;
+    private PaymentService paymentService;
 
     @Test
     void rejectsRequestWhenRunnerIdIsMissing() throws Exception {
@@ -36,7 +36,7 @@ class PaymentControllerValidationTests {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("참가자 ID는 필수입니다."));
 
-        verifyNoInteractions(paymentGatewayPort);
+        verifyNoInteractions(paymentService);
     }
 
     @Test
@@ -55,7 +55,7 @@ class PaymentControllerValidationTests {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("결제 총액은 0보다 커야 합니다."));
 
-        verifyNoInteractions(paymentGatewayPort);
+        verifyNoInteractions(paymentService);
     }
 
     @Test
@@ -67,6 +67,6 @@ class PaymentControllerValidationTests {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("요청 본문을 읽을 수 없습니다."));
 
-        verifyNoInteractions(paymentGatewayPort);
+        verifyNoInteractions(paymentService);
     }
 }

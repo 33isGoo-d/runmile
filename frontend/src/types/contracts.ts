@@ -53,7 +53,7 @@ export type AnalyticsOverview = {
   runmileUsed: number;
   linkedPaymentAmount: number;
   estimatedIncrementalSales: number;
-  effectRatio: number;
+  effectRatio: number | null;
 };
 
 export type DistrictAnalytics = {
@@ -76,6 +76,6 @@ export type PolicyEffect = {
   actualSales: number;
   predictedBaseline: number;
   estimatedIncrementalSales: number;
-  effectRatio: number;
+  effectRatio: number | null;
 };
 export type Insight = { type: string; title: string; description: string };

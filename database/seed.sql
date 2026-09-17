@@ -11,7 +11,7 @@ VALUES (1, 1, 1, 'DAEGU-MARATHON-2026-00001', 'DAEGU_CHAIN_MOCK', true, '2026-02
 ON CONFLICT (nft_token_id) DO NOTHING;
 
 INSERT INTO runmile_wallet (id, runner_id, balance, total_issued, total_used)
-VALUES (1, 1, 10000, 10000, 0)
+VALUES (1, 1, 0, 0, 0)
 ON CONFLICT (runner_id) DO NOTHING;
 
 INSERT INTO merchant (id, merchant_code, name, district, category, address, latitude, longitude, runmile_enabled)

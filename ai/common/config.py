@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 AI_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = AI_DIR.parent / "data"
@@ -7,6 +8,11 @@ PROCESSED_DIR = DATA_DIR / "processed"
 RESULTS_DIR = DATA_DIR / "results"
 MODELS_DIR = AI_DIR / "models"
 
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB = os.getenv("POSTGRES_DB", "runmile")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "runmile")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "runmile_dev_password")
 SCENARIOS = ("NONE", "LOW", "MEDIUM", "HIGH")
 MERCHANT_CATEGORIES = ("RESTAURANT", "CAFE", "RETAIL", "ACCOMMODATION", "OTHER")
 DISTRICTS = ("중구", "동구", "서구", "남구", "북구", "수성구", "달서구")
