@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "runner")
@@ -25,7 +26,8 @@ public class Runner {
     @Column(nullable = false, length = 16)
     private Course course;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     protected Runner() {
