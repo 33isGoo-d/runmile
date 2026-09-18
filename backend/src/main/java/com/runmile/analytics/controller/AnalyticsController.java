@@ -30,8 +30,10 @@ public class AnalyticsController {
     }
 
     @GetMapping("/districts")
-    public List<DistrictAnalyticsResponse> districts() {
-        return analyticsService.getDistricts();
+    public List<DistrictAnalyticsResponse> districts(
+            @RequestParam(defaultValue = "MEDIUM") Scenario scenario
+    ) {
+        return analyticsService.getDistricts(scenario);
     }
 
     @GetMapping("/categories")
@@ -47,7 +49,9 @@ public class AnalyticsController {
     }
 
     @GetMapping("/insights")
-    public List<InsightResponse> insights() {
-        return analyticsService.getInsights();
+    public List<InsightResponse> insights(
+            @RequestParam(defaultValue = "MEDIUM") Scenario scenario
+    ) {
+        return analyticsService.getInsights(scenario);
     }
 }
