@@ -34,8 +34,8 @@ export type Merchant = {
   district: string;
   category: MerchantCategory;
   address: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   runmileEnabled: boolean;
 };
 

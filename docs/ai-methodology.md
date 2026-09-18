@@ -32,6 +32,10 @@ The generator should create approximately 40,000 synthetic runners and approxima
 
 Use real, legally available data when possible, such as marathon scale, public merchant/category information, and district metadata. Synthesize unavailable personal behavior and financial transaction data.
 
+가맹점은 대구 9개 구·군을 모두 포함한다. 지도 시연용 위도·경도는 각 구·군 중심점에
+고정 시드 오프셋을 적용해 생성하며, 실제 사업자 위치로 해석하거나 외부에 사실 데이터로
+제공하지 않는다.
+
 Sales simulation formula:
 
 ```text

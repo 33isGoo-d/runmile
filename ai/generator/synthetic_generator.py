@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from common.config import (
+    DISTRICT_CENTERS,
     DISTRICTS,
     MARATHON_DATE,
     MERCHANT_CATEGORIES,
@@ -66,12 +67,15 @@ def generate_merchants(rng: np.random.Generator) -> pd.DataFrame:
                     group = "TREATMENT" if rng.random() < TREATMENT_RATIO else "CONTROL"
 
                 base_sales = BASE_SALES_BY_CATEGORY[category] * rng.uniform(0.7, 1.3)
+                center_latitude, center_longitude = DISTRICT_CENTERS[district]
                 rows.append(
                     {
                         "merchant_id": merchant_id,
                         "merchant_code": f"MERCHANT_{merchant_id:05d}",
                         "district": district,
                         "category": category,
+                        "latitude": round(rng.normal(center_latitude, 0.012), 7),
+                        "longitude": round(rng.normal(center_longitude, 0.015), 7),
                         "runmile_enabled": group == "TREATMENT",
                         "group": group,
                         "base_sales": round(base_sales),

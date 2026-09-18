@@ -37,6 +37,8 @@ def _merchant_rows(merchants: pd.DataFrame) -> list[tuple]:
                 merchant.district,
                 merchant.category,
                 f"대구광역시 {merchant.district}",
+                float(merchant.latitude),
+                float(merchant.longitude),
                 bool(merchant.runmile_enabled),
             )
         )
@@ -129,13 +131,16 @@ def load_results_to_postgres() -> None:
         cursor.executemany(
             """
             INSERT INTO merchant (
-                merchant_code, name, district, category, address, runmile_enabled
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                merchant_code, name, district, category, address,
+                latitude, longitude, runmile_enabled
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (merchant_code) DO UPDATE SET
                 name = EXCLUDED.name,
                 district = EXCLUDED.district,
                 category = EXCLUDED.category,
                 address = EXCLUDED.address,
+                latitude = EXCLUDED.latitude,
+                longitude = EXCLUDED.longitude,
                 runmile_enabled = EXCLUDED.runmile_enabled
             """,
             _merchant_rows(merchants),

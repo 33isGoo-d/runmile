@@ -26,7 +26,7 @@ This is not a production banking system. Prefer direct, understandable implement
 - Database: PostgreSQL 16 via Docker Compose
 - AI/Data: Python 3.12.14, Pandas 2.2.2, NumPy 2.0.0, scikit-learn 1.5.1, XGBoost 2.1.0
 - API: REST under `/api/v1`
-- Map: Kakao Map planned
+- Map: Kakao Maps JavaScript SDK
 - Blockchain/Payment: Mock adapters only for this demo
 
 ## Directory Structure
@@ -103,6 +103,9 @@ npm install
 npm run dev
 ```
 
+루트 `.env.example`을 참고해 Frontend 환경 변수에 Kakao Maps JavaScript 키를
+설정하면 참가자 화면에서 사용처 지도를 확인할 수 있습니다.
+
 참가자 화면은 `http://localhost:3000/participant`, 관리자 화면은 `http://localhost:3000/admin`에서 확인합니다.
 
 Backend는 Java 17에서 검증했습니다. 기본 `java`가 다른 JDK를 가리키면 `./gradlew` 실행 전에 위와 같이 `JAVA_HOME`을 설정합니다.
@@ -134,10 +137,8 @@ P0:
 P1:
 
 - real public merchant/event data where legally available
-- Kakao Map polish
 - weather data
 - AI performance visualization
-- scenario demo
 - UI polish
 
 P2:
