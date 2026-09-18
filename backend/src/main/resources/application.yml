@@ -18,3 +18,17 @@ spring:
 server:
   address: 0.0.0.0
   port: ${PORT:8080}
+
+daegu-chain:
+  rpc-url: ${DAEGU_CHAIN_RPC_URL:https://polygon-amoy.drpc.org}
+  network-name: ${DAEGU_CHAIN_NETWORK_NAME:POLYGON_AMOY}
+  chain-id: ${DAEGU_CHAIN_ID:80002}
+  trusted-address: ${DAEGU_CHAIN_TRUSTED_ADDRESS:0xe957f0ad734260f9677b4d53e8d42c0c86556367}
+  private-key: ${DAEGU_CHAIN_PRIVATE_KEY:}
+  minimum-confirmations: ${DAEGU_CHAIN_MINIMUM_CONFIRMATIONS:1}
+  rpc-timeout-seconds: ${DAEGU_CHAIN_RPC_TIMEOUT_SECONDS:10}
+  verification-cache-seconds: ${DAEGU_CHAIN_VERIFICATION_CACHE_SECONDS:30}
+  verification-cache-max-size: ${DAEGU_CHAIN_VERIFICATION_CACHE_MAX_SIZE:1000}
+  anchor-runner-id: ${DAEGU_CHAIN_ANCHOR_RUNNER_ID:}
+  anchor-all: ${DAEGU_CHAIN_ANCHOR_ALL:false}
+  recovery-transaction-hash: ${DAEGU_CHAIN_RECOVERY_TX_HASH:}

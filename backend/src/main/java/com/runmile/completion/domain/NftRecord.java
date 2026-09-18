@@ -69,4 +69,11 @@ public class NftRecord {
     public Instant getIssuedAt() {
         return issuedAt;
     }
+
+    public void anchorOnChain(String nftTokenId, String network, Instant issuedAt) {
+        this.nftTokenId = nftTokenId;
+        this.network = network;
+        this.verified = true;
+        this.issuedAt = issuedAt;
+    }
 }

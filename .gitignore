@@ -19,6 +19,7 @@ ai/__pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+graphify-out/
 
 # Generated data and model artifacts
 data/raw/*
@@ -44,4 +45,3 @@ backend/src/main/resources/application-local.yml
 .vscode/
 *.iml
 .DS_Store
-

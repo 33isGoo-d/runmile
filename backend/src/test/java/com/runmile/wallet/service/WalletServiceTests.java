@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,12 +22,16 @@ import com.runmile.wallet.repository.RunMileWalletRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 class WalletServiceTests {
     private RunMileWalletRepository walletRepository;
     private RunMileTransactionRepository transactionRepository;
     private CompletionRepository completionRepository;
     private NftVerificationService nftVerificationService;
+    private PlatformTransactionManager transactionManager;
     private WalletService walletService;
 
     @BeforeEach
@@ -35,11 +40,14 @@ class WalletServiceTests {
         transactionRepository = mock(RunMileTransactionRepository.class);
         completionRepository = mock(CompletionRepository.class);
         nftVerificationService = mock(NftVerificationService.class);
+        transactionManager = mock(PlatformTransactionManager.class);
+        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
         walletService = new WalletService(
                 walletRepository,
                 transactionRepository,
                 completionRepository,
-                nftVerificationService
+                nftVerificationService,
+                transactionManager
         );
     }
 
@@ -50,7 +58,7 @@ class WalletServiceTests {
         when(completion.isCompleted()).thenReturn(true);
         when(completionRepository.findByRunnerId(1L)).thenReturn(Optional.of(completion));
         when(nftVerificationService.getNftVerification(1L))
-                .thenReturn(new NftVerificationResponse("TOKEN", "DAEGU_CHAIN_MOCK", true));
+                .thenReturn(new NftVerificationResponse("TOKEN", "POLYGON_AMOY", true));
         when(walletRepository.findByRunnerIdForUpdate(1L)).thenReturn(Optional.of(wallet));
         when(wallet.getId()).thenReturn(1L);
         when(wallet.getBalance()).thenReturn(10_000L);
@@ -60,6 +68,9 @@ class WalletServiceTests {
         RunMileIssueResponse response = walletService.issue(1L, 10_000L);
 
         assertThat(response).isEqualTo(new RunMileIssueResponse(10_000L, 10_000L));
+        InOrder order = inOrder(nftVerificationService, transactionManager);
+        order.verify(nftVerificationService).getNftVerification(1L);
+        order.verify(transactionManager).getTransaction(any());
         verify(wallet).issue(10_000L);
         verify(transactionRepository).save(any(RunMileTransaction.class));
     }
@@ -71,7 +82,7 @@ class WalletServiceTests {
         when(completion.isCompleted()).thenReturn(true);
         when(completionRepository.findByRunnerId(1L)).thenReturn(Optional.of(completion));
         when(nftVerificationService.getNftVerification(1L))
-                .thenReturn(new NftVerificationResponse("TOKEN", "DAEGU_CHAIN_MOCK", true));
+                .thenReturn(new NftVerificationResponse("TOKEN", "POLYGON_AMOY", true));
         when(walletRepository.findByRunnerIdForUpdate(1L)).thenReturn(Optional.of(wallet));
         when(wallet.getId()).thenReturn(1L);
         when(transactionRepository.existsByWalletIdAndType(1L, RunMileTransactionType.ISSUE))

@@ -173,7 +173,7 @@ The prototype assumes one runner participates in one race.
 
 ## 7. nft_record
 
-Stores marathon NFT verification status.
+Stores marathon completion-proof verification status. The table name remains for MVP API compatibility.
 
 ```text
 id               BIGINT PK
@@ -182,7 +182,7 @@ completion_id    BIGINT FK UNIQUE NOT NULL
 nft_token_id     VARCHAR UNIQUE NOT NULL
 network          VARCHAR NOT NULL
 verified         BOOLEAN NOT NULL
-issued_at        TIMESTAMP
+issued_at        TIMESTAMPTZ
 ```
 
 관계:
@@ -194,11 +194,15 @@ completion 1 : 1 nft_record
 
 UNIQUE 제약으로 동일 참가자 또는 동일 완주 기록에 NFT 기록이 중복 생성되는 것을 방지한다.
 
-Prototype example:
+Initial state before anchoring:
 
 ```text
-network = DAEGU_CHAIN_MOCK
+token_id = PENDING-RUNNER-00001
+network = PENDING
+verified = false
 ```
+
+Polygon Amoy mode stores the mined transaction hash in `nft_token_id` and `POLYGON_AMOY` in `network`. The transaction input is a SHA-256 digest bound to the runner and completion record. It does not represent an ERC-721 token ID.
 
 Do not store the full blockchain transaction history. The prototype only needs the reward eligibility verification result.
 
