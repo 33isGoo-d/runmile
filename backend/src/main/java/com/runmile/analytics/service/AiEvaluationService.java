@@ -17,6 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AiEvaluationService {
+    static final String MAE = "MAE";
+    static final String MAPE = "MAPE";
+    static final String RMSE = "RMSE";
+    static final List<String> REQUIRED_METRIC_NAMES = List.of(MAE, MAPE, RMSE);
+
     private final AiModelMetricRepository modelMetricRepository;
     private final AiEffectEvaluationRepository effectEvaluationRepository;
 
@@ -31,7 +36,7 @@ public class AiEvaluationService {
     @Transactional(readOnly = true)
     public AiEvaluationResponse getEvaluation() {
         Map<String, AiModelMetric> metrics = modelMetricRepository
-                .findAllById(List.of("MAE", "MAPE", "RMSE"))
+                .findAllById(REQUIRED_METRIC_NAMES)
                 .stream()
                 .collect(Collectors.toMap(AiModelMetric::getMetricName, metric -> metric));
         BaselineMetricResponse baseline = createBaseline(metrics);
@@ -43,7 +48,7 @@ public class AiEvaluationService {
     }
 
     private BaselineMetricResponse createBaseline(Map<String, AiModelMetric> metrics) {
-        if (!metrics.keySet().containsAll(List.of("MAE", "MAPE", "RMSE"))) {
+        if (!metrics.keySet().containsAll(REQUIRED_METRIC_NAMES)) {
             return null;
         }
         Instant evaluatedAt = metrics.values().stream()
@@ -51,9 +56,9 @@ public class AiEvaluationService {
                 .max(Comparator.naturalOrder())
                 .orElseThrow();
         return new BaselineMetricResponse(
-                metrics.get("MAE").getMetricValue(),
-                metrics.get("MAPE").getMetricValue(),
-                metrics.get("RMSE").getMetricValue(),
+                metrics.get(MAE).getMetricValue(),
+                metrics.get(MAPE).getMetricValue(),
+                metrics.get(RMSE).getMetricValue(),
                 evaluatedAt
         );
     }
