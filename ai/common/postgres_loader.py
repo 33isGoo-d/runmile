@@ -27,16 +27,10 @@ def _connect() -> psycopg.Connection:
     )
 
 
-def _required_int(value: object, field: str, context: str) -> int:
+def _required_value(value: object, field: str, context: str) -> object:
     if pd.isna(value):
         raise ValueError(f"{context}의 필수값 {field}가 비어 있습니다.")
-    return int(value)
-
-
-def _required_float(value: object, field: str, context: str) -> float:
-    if pd.isna(value):
-        raise ValueError(f"{context}의 필수값 {field}가 비어 있습니다.")
-    return float(value)
+    return value
 
 
 def _optional_float(value: object) -> float | None:
@@ -44,10 +38,9 @@ def _optional_float(value: object) -> float | None:
 
 
 def _parse_datetime(value: object, field: str, context: str) -> datetime:
-    if pd.isna(value):
-        raise ValueError(f"{context}의 필수값 {field}가 비어 있습니다.")
+    required_value = _required_value(value, field, context)
     try:
-        return datetime.fromisoformat(str(value))
+        return datetime.fromisoformat(str(required_value))
     except ValueError as error:
         raise ValueError(f"{context}의 {field} 형식이 올바르지 않습니다: {value}") from error
 
@@ -129,7 +122,9 @@ def _model_metric_rows(metrics: pd.DataFrame) -> list[tuple]:
     return [
         (
             row.metric_name,
-            _required_float(row.metric_value, "metric_value", f"모델 지표 {row.metric_name}"),
+            float(_required_value(
+                row.metric_value, "metric_value", f"모델 지표 {row.metric_name}"
+            )),
             _parse_datetime(row.evaluated_at, "evaluated_at", f"모델 지표 {row.metric_name}"),
         )
         for row in metrics.itertuples(index=False)
@@ -140,9 +135,15 @@ def _effect_evaluation_rows(evaluations: pd.DataFrame) -> list[tuple]:
     return [
         (
             row.scenario,
-            _required_int(row.injected_effect, "injected_effect", f"효과 평가 {row.scenario}"),
-            _required_int(row.estimated_effect, "estimated_effect", f"효과 평가 {row.scenario}"),
-            _required_int(row.difference, "difference", f"효과 평가 {row.scenario}"),
+            int(_required_value(
+                row.injected_effect, "injected_effect", f"효과 평가 {row.scenario}"
+            )),
+            int(_required_value(
+                row.estimated_effect, "estimated_effect", f"효과 평가 {row.scenario}"
+            )),
+            int(_required_value(
+                row.difference, "difference", f"효과 평가 {row.scenario}"
+            )),
             _optional_float(row.difference_pct),
             _parse_datetime(row.evaluated_at, "evaluated_at", f"효과 평가 {row.scenario}"),
         )

@@ -19,7 +19,7 @@ class AiEvaluationServiceTests {
     void 평가_지표가_없으면_빈_응답을_반환한다() {
         AiModelMetricRepository modelRepository = mock(AiModelMetricRepository.class);
         AiEffectEvaluationRepository effectRepository = mock(AiEffectEvaluationRepository.class);
-        when(modelRepository.findAllById(List.of("MAE", "MAPE", "RMSE")))
+        when(modelRepository.findAllById(AiEvaluationService.REQUIRED_METRIC_NAMES))
                 .thenReturn(List.of());
         when(effectRepository.findAll()).thenReturn(List.of());
 
@@ -46,7 +46,7 @@ class AiEvaluationServiceTests {
         AiEffectEvaluation none = effect(
                 Scenario.NONE, 0, -1_000_000, -1_000_000, null, evaluatedAt
         );
-        when(modelRepository.findAllById(List.of("MAE", "MAPE", "RMSE"))).thenReturn(List.of(
+        when(modelRepository.findAllById(AiEvaluationService.REQUIRED_METRIC_NAMES)).thenReturn(List.of(
                 rmse,
                 mae,
                 mape
