@@ -100,6 +100,31 @@ def _policy_effect_rows(effects: pd.DataFrame) -> list[tuple]:
     return rows
 
 
+def _model_metric_rows(metrics: pd.DataFrame) -> list[tuple]:
+    return [
+        (
+            row.metric_name,
+            float(row.metric_value),
+            datetime.fromisoformat(row.evaluated_at),
+        )
+        for row in metrics.itertuples(index=False)
+    ]
+
+
+def _effect_evaluation_rows(evaluations: pd.DataFrame) -> list[tuple]:
+    return [
+        (
+            row.scenario,
+            int(row.injected_effect),
+            int(row.estimated_effect),
+            int(row.difference),
+            None if pd.isna(row.difference_pct) else float(row.difference_pct),
+            datetime.fromisoformat(row.evaluated_at),
+        )
+        for row in evaluations.itertuples(index=False)
+    ]
+
+
 def _load_merchant_ids(
     cursor: psycopg.Cursor,
     merchants: pd.DataFrame,
@@ -126,6 +151,8 @@ def load_results_to_postgres() -> None:
     sales = pd.read_csv(SYNTHETIC_DIR / "merchant_daily_sales.csv")
     predictions = pd.read_csv(PROCESSED_DIR / "ai_predictions.csv")
     effects = pd.read_csv(RESULTS_DIR / "policy_effects.csv")
+    model_metrics = pd.read_csv(RESULTS_DIR / "model_metrics.csv")
+    effect_evaluations = pd.read_csv(RESULTS_DIR / "evaluation_report.csv")
 
     with _connect() as connection, connection.cursor() as cursor:
         cursor.executemany(
@@ -193,8 +220,35 @@ def load_results_to_postgres() -> None:
             """,
             _policy_effect_rows(effects),
         )
+        cursor.executemany(
+            """
+            INSERT INTO ai_model_metric (metric_name, metric_value, evaluated_at)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (metric_name) DO UPDATE SET
+                metric_value = EXCLUDED.metric_value,
+                evaluated_at = EXCLUDED.evaluated_at
+            """,
+            _model_metric_rows(model_metrics),
+        )
+        cursor.executemany(
+            """
+            INSERT INTO ai_effect_evaluation (
+                scenario, injected_effect, estimated_effect, difference,
+                difference_pct, evaluated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (scenario) DO UPDATE SET
+                injected_effect = EXCLUDED.injected_effect,
+                estimated_effect = EXCLUDED.estimated_effect,
+                difference = EXCLUDED.difference,
+                difference_pct = EXCLUDED.difference_pct,
+                evaluated_at = EXCLUDED.evaluated_at
+            """,
+            _effect_evaluation_rows(effect_evaluations),
+        )
     print(
         "Loaded "
         f"{len(merchants)} merchants, {len(sales)} sales rows, "
-        f"{len(predictions)} predictions, and {len(effects)} policy effects into PostgreSQL"
+        f"{len(predictions)} predictions, {len(effects)} policy effects, "
+        f"{len(model_metrics)} model metrics, and "
+        f"{len(effect_evaluations)} effect evaluations into PostgreSQL"
     )

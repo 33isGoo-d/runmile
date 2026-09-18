@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pandas as pd
 
 from common.config import RESULTS_DIR, SCENARIOS
@@ -29,8 +31,9 @@ def evaluate_effect() -> pd.DataFrame:
     report = pd.concat([injected, estimated], axis=1).reindex(list(SCENARIOS)).reset_index()
     report["difference"] = report["estimated_effect"] - report["injected_effect"]
     report["difference_pct"] = (
-        report["difference"] / report["injected_effect"].replace(0, pd.NA) * 100
+        report["difference"] / report["injected_effect"].where(report["injected_effect"] != 0) * 100
     ).round(1)
+    report["evaluated_at"] = datetime.now(timezone.utc).isoformat()
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     output_path = RESULTS_DIR / "evaluation_report.csv"

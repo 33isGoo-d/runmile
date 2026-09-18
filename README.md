@@ -70,6 +70,12 @@ docker compose up -d
 
 최초 실행 시 `database/init.sql`과 `database/seed.sql`이 자동 적용됩니다.
 
+이미 생성한 PostgreSQL 볼륨을 유지하는 환경에서는 평가 지표 테이블을 한 번 추가합니다.
+
+```bash
+docker compose exec -T postgres psql -U runmile -d runmile < database/migrations/001_ai_evaluation.sql
+```
+
 ### 2. AI 배치 실행
 
 macOS에서는 XGBoost 실행에 OpenMP 런타임이 필요합니다.
@@ -138,7 +144,6 @@ P1:
 
 - real public merchant/event data where legally available
 - weather data
-- AI performance visualization
 - UI polish
 
 P2:

@@ -128,6 +128,9 @@ Merchant
  └── AIPrediction
 
 PolicyEffect
+
+AIModelMetric
+AIEffectEvaluation
 ```
 
 ## 5. runner
@@ -432,9 +435,35 @@ scope_type  = CATEGORY
 scope_value = RESTAURANT
 ```
 
-## 15. Ground Truth
+## 15. ai_model_metric
 
-The actual policy effect injected by Synthetic Data Generator is not stored in the operational database.
+XGBoost 기준 매출 모델의 검증 집계 지표를 저장한다.
+
+```text
+metric_name   VARCHAR PK  # MAE, MAPE, RMSE
+metric_value  DOUBLE PRECISION NOT NULL
+evaluated_at  TIMESTAMP NOT NULL
+```
+
+## 16. ai_effect_evaluation
+
+시나리오별 효과 추정의 집계 검증 결과를 저장한다.
+
+```text
+scenario          VARCHAR PK
+injected_effect   BIGINT NOT NULL
+estimated_effect  BIGINT NOT NULL
+difference        BIGINT NOT NULL
+difference_pct    DOUBLE PRECISION
+evaluated_at      TIMESTAMP NOT NULL
+```
+
+이 테이블에는 행 단위 ground truth를 저장하지 않는다. 관리자 화면에 필요한 시나리오별
+집계 검증값만 저장한다.
+
+## 17. Ground Truth
+
+Synthetic Data Generator가 생성한 행 단위 실제 효과는 운영 DB에 저장하지 않는다.
 
 Example:
 
@@ -444,7 +473,7 @@ data/results/ground_truth.csv
 
 Ground truth cannot be used as AI model input.
 
-It is only used for evaluation:
+평가 단계에서만 사용하며, 평가 후 생성된 집계 지표는 `ai_effect_evaluation`에 저장할 수 있다.
 
 ```text
 Injected Ground Truth

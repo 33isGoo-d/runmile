@@ -109,6 +109,10 @@ ground truth effect vs estimated effect
 
 `data/results/ground_truth.csv` is evaluation-only. It must never be used as model input.
 
+배치는 기준 매출 모델의 MAE/MAPE/RMSE를 `data/results/model_metrics.csv`에,
+시나리오별 효과 추정 오차를 `data/results/evaluation_report.csv`에 기록한다. 운영 DB에는
+대시보드 표시를 위한 집계 지표만 적재하며, 가맹점별 ground truth 행은 적재하지 않는다.
+
 ## Dashboard Output
 
 The model output should support dashboard values such as:

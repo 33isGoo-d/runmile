@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
 from xgboost import XGBRegressor
 
-from common.config import CATEGORY_CODE, DISTRICT_CODE, MARATHON_DATE, MODELS_DIR, PROCESSED_DIR, SYNTHETIC_DIR
+from common.config import CATEGORY_CODE, DISTRICT_CODE, MARATHON_DATE, MODELS_DIR, PROCESSED_DIR, RESULTS_DIR, SYNTHETIC_DIR
 
 # Baseline must predict normal sales "as if RunMile did not exist", so it excludes
 # runmile_amount and any event/marathon indicator that only has signal on the one
@@ -78,6 +80,17 @@ def train_baseline() -> pd.DataFrame:
     mape = mean_absolute_percentage_error(val_df[TARGET_COLUMN], val_pred)
     rmse = mean_squared_error(val_df[TARGET_COLUMN], val_pred) ** 0.5
     print(f"Validation MAE={mae:.0f} MAPE={mape:.3f} RMSE={rmse:.0f}")
+
+    evaluated_at = datetime.now(timezone.utc).isoformat()
+    metrics = pd.DataFrame(
+        [
+            {"metric_name": "MAE", "metric_value": mae, "evaluated_at": evaluated_at},
+            {"metric_name": "MAPE", "metric_value": mape, "evaluated_at": evaluated_at},
+            {"metric_name": "RMSE", "metric_value": rmse, "evaluated_at": evaluated_at},
+        ]
+    )
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    metrics.to_csv(RESULTS_DIR / "model_metrics.csv", index=False)
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     model.save_model(MODELS_DIR / "baseline_xgb.json")
