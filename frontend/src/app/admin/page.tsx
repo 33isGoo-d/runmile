@@ -4,10 +4,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getApi } from "@/lib/api";
 import { formatWon, merchantCategoryLabel } from "@/lib/presentation";
-import type { AnalyticsOverview, CategoryAnalytics, DistrictAnalytics, Insight, PolicyEffect } from "@/types/contracts";
+import type { AnalyticsOverview, CategoryAnalytics, DistrictAnalytics, Insight, PolicyEffect, Scenario } from "@/types/contracts";
 
 const compactWon = (value: number) => `${(value / 100000000).toFixed(value >= 100000000 ? 1 : 2)}억`;
 const formatEffectRatio = (value: number | null) => value == null ? "산정 불가" : `${value.toFixed(2)}배`;
+const scenarios: Array<{ value: Scenario; label: string }> = [
+  { value: "NONE", label: "미시행" },
+  { value: "LOW", label: "낮음" },
+  { value: "MEDIUM", label: "중간" },
+  { value: "HIGH", label: "높음" }
+];
 
 function Bar({ label, value, max, detail, tone = "mint" }: { label: string; value: number; max: number; detail: string; tone?: "mint" | "blue" }) {
   return <div className="bar-row"><div className="bar-label"><b>{label}</b><span>{detail}</span></div><div className="bar-track"><i className={tone} style={{ width: `${Math.max(8, (value / Math.max(max, 1)) * 100)}%` }} /></div><strong>{formatWon(value)}</strong></div>;
@@ -19,18 +25,37 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<CategoryAnalytics[]>([]);
   const [effects, setEffects] = useState<PolicyEffect[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [scenario, setScenario] = useState<Scenario>("MEDIUM");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reportDate, setReportDate] = useState("");
 
   useEffect(() => {
-    void Promise.all([
-      getApi<AnalyticsOverview>("/admin/analytics/overview"), getApi<DistrictAnalytics[]>("/admin/analytics/districts"),
-      getApi<CategoryAnalytics[]>("/admin/analytics/categories"), getApi<PolicyEffect[]>("/admin/analytics/effects"), getApi<Insight[]>("/admin/analytics/insights")
-    ]).then(([nextOverview, nextDistricts, nextCategories, nextEffects, nextInsights]) => {
-      setOverview(nextOverview); setDistricts(nextDistricts); setCategories(nextCategories); setEffects(nextEffects); setInsights(nextInsights);
-    }).catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : "분석 데이터를 불러오지 못했습니다."));
+    setReportDate(new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric", month: "2-digit", day: "2-digit"
+    }).format(new Date()));
   }, []);
 
-  if (error) return <main className="admin-shell"><p className="loading-screen">{error}</p></main>;
+  useEffect(() => {
+    let active = true;
+    const query = `?scenario=${scenario}`;
+    setLoading(true);
+    setError(null);
+    void Promise.all([
+      getApi<AnalyticsOverview>(`/admin/analytics/overview${query}`), getApi<DistrictAnalytics[]>(`/admin/analytics/districts${query}`),
+      getApi<CategoryAnalytics[]>("/admin/analytics/categories"), getApi<PolicyEffect[]>(`/admin/analytics/effects${query}`), getApi<Insight[]>(`/admin/analytics/insights${query}`)
+    ]).then(([nextOverview, nextDistricts, nextCategories, nextEffects, nextInsights]) => {
+      if (!active) return;
+      setOverview(nextOverview); setDistricts(nextDistricts); setCategories(nextCategories); setEffects(nextEffects); setInsights(nextInsights);
+    }).catch((loadError: unknown) => {
+      if (active) setError(loadError instanceof Error ? loadError.message : "분석 데이터를 불러오지 못했습니다.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [scenario]);
+
+  if (error && !overview) return <main className="admin-shell"><p className="loading-screen">{error}</p></main>;
   if (!overview) return <main className="admin-shell"><p className="loading-screen">정책 분석 데이터 로딩 중</p></main>;
   const maxDistrict = Math.max(...districts.map((item) => item.runmileUsed));
   const maxCategory = Math.max(...categories.map((item) => item.linkedPaymentAmount));
@@ -39,8 +64,9 @@ export default function AdminPage() {
   return <main className="admin-shell">
     <aside className="admin-sidebar"><Link className="brand" href="/">RUN<span>MILE</span></Link><div className="sidebar-title">운영 분석</div><nav><a className="active" href="#where"><span>01</span> 집행 분포</a><a href="#effect"><span>02</span> 효과 추정</a><a href="#next"><span>03</span> 분석 요약</a></nav><div className="sidebar-bottom"><span className="live-dot" /> 분석 모델<br /><strong>{overview.scenario}</strong><Link href="/participant">← 참가자 화면</Link></div></aside>
     <section className="admin-content">
-      <header className="admin-header"><div><h1>RunMile 정책 효과 분석</h1><p>2026 대구마라톤 연계 사업</p></div><div className="report-date"><span>분석 기준일</span><b>2026. 09. 17</b></div></header>
-      <section className="overview-grid" aria-label="정책 분석 요약"><article><span>배정 예산</span><strong>{compactWon(overview.runmileBudget)}</strong><small>{formatWon(overview.runmileBudget)}</small></article><article><span>RunMile 집행액</span><strong>{compactWon(overview.runmileUsed)}</strong><small>예산 집행률 {Math.round((overview.runmileUsed / overview.runmileBudget) * 100)}%</small></article><article className="linked"><span>연계 소비 총액</span><strong>{compactWon(overview.linkedPaymentAmount)}</strong><small>RunMile 포함 결제액</small></article><article className="impact"><span>추정 추가 소비액</span><strong>{compactWon(overview.estimatedIncrementalSales)}</strong><small>예산 대비 효과 {formatEffectRatio(overview.effectRatio)}</small></article></section>
+      <header className="admin-header"><div><h1>RunMile 정책 효과 분석</h1><p>2026 대구마라톤 연계 사업</p></div><div className="admin-controls"><div className="scenario-control"><span>정책 강도</span><div className="scenario-selector" aria-label="정책 시나리오">{scenarios.map((item) => <button key={item.value} type="button" className={scenario === item.value ? "selected" : ""} aria-pressed={scenario === item.value} disabled={loading} onClick={() => setScenario(item.value)}>{item.label}</button>)}</div><small>{loading ? "분석 결과 갱신 중" : `${overview.scenario} 시나리오`}</small></div><div className="report-date"><span>분석 기준일</span><b>{reportDate || "-"}</b></div></div></header>
+      {error && <div className="admin-error" role="alert">{error}</div>}
+      <section className="overview-grid" aria-label="정책 분석 요약"><article><span>배정 예산</span><strong>{compactWon(overview.runmileBudget)}</strong><small>{formatWon(overview.runmileBudget)}</small></article><article><span>RunMile 집행액</span><strong>{compactWon(overview.runmileUsed)}</strong><small>{overview.runmileBudget === 0 ? "예산 집행 없음" : `예산 집행률 ${Math.round((overview.runmileUsed / overview.runmileBudget) * 100)}%`}</small></article><article className="linked"><span>연계 소비 총액</span><strong>{compactWon(overview.linkedPaymentAmount)}</strong><small>RunMile 포함 결제액</small></article><article className="impact"><span>추정 추가 소비액</span><strong>{compactWon(overview.estimatedIncrementalSales)}</strong><small>예산 대비 효과 {formatEffectRatio(overview.effectRatio)}</small></article></section>
 
       <section className="dashboard-section" id="where"><div className="dashboard-heading"><div><p className="section-kicker">지역·업종 집행 분석</p><h2>RunMile 사용 분포</h2></div></div>
         <div className="data-grid"><article className="chart-card"><h3>구별 RunMile 사용액</h3><div className="chart-body">{districts.map((item) => <Bar key={item.district} label={item.district} value={item.runmileUsed} max={maxDistrict} detail={`${item.transactionCount.toLocaleString()}건 · ${item.merchantCount}개 가맹점`} />)}</div></article>
