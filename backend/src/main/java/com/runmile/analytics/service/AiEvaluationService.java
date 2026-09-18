@@ -30,7 +30,9 @@ public class AiEvaluationService {
 
     @Transactional(readOnly = true)
     public AiEvaluationResponse getEvaluation() {
-        Map<String, AiModelMetric> metrics = modelMetricRepository.findAll().stream()
+        Map<String, AiModelMetric> metrics = modelMetricRepository
+                .findAllById(List.of("MAE", "MAPE", "RMSE"))
+                .stream()
                 .collect(Collectors.toMap(AiModelMetric::getMetricName, metric -> metric));
         BaselineMetricResponse baseline = createBaseline(metrics);
         List<EffectEvaluationResponse> effects = effectEvaluationRepository.findAll().stream()

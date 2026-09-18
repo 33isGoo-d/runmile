@@ -28,36 +28,48 @@ export default function AdminPage() {
   const [evaluation, setEvaluation] = useState<AiEvaluation>({ baseline: null, effects: [] });
   const [scenario, setScenario] = useState<Scenario>("MEDIUM");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [staticError, setStaticError] = useState<string | null>(null);
+  const [scenarioError, setScenarioError] = useState<string | null>(null);
   const [reportDate, setReportDate] = useState("");
 
   useEffect(() => {
     setReportDate(new Intl.DateTimeFormat("ko-KR", {
       year: "numeric", month: "2-digit", day: "2-digit"
     }).format(new Date()));
+    let active = true;
+    void Promise.all([
+      getApi<CategoryAnalytics[]>("/admin/analytics/categories"),
+      getApi<AiEvaluation>("/admin/analytics/evaluation")
+    ]).then(([nextCategories, nextEvaluation]) => {
+      if (!active) return;
+      setCategories(nextCategories);
+      setEvaluation(nextEvaluation);
+    }).catch((loadError: unknown) => {
+      if (active) setStaticError(loadError instanceof Error ? loadError.message : "공통 분석 데이터를 불러오지 못했습니다.");
+    });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
     let active = true;
     const query = `?scenario=${scenario}`;
     setLoading(true);
-    setError(null);
+    setScenarioError(null);
     void Promise.all([
       getApi<AnalyticsOverview>(`/admin/analytics/overview${query}`), getApi<DistrictAnalytics[]>(`/admin/analytics/districts${query}`),
-      getApi<CategoryAnalytics[]>("/admin/analytics/categories"), getApi<PolicyEffect[]>(`/admin/analytics/effects${query}`), getApi<Insight[]>(`/admin/analytics/insights${query}`),
-      getApi<AiEvaluation>("/admin/analytics/evaluation")
-    ]).then(([nextOverview, nextDistricts, nextCategories, nextEffects, nextInsights, nextEvaluation]) => {
+      getApi<PolicyEffect[]>(`/admin/analytics/effects${query}`), getApi<Insight[]>(`/admin/analytics/insights${query}`)
+    ]).then(([nextOverview, nextDistricts, nextEffects, nextInsights]) => {
       if (!active) return;
-      setOverview(nextOverview); setDistricts(nextDistricts); setCategories(nextCategories); setEffects(nextEffects); setInsights(nextInsights);
-      setEvaluation(nextEvaluation);
+      setOverview(nextOverview); setDistricts(nextDistricts); setEffects(nextEffects); setInsights(nextInsights);
     }).catch((loadError: unknown) => {
-      if (active) setError(loadError instanceof Error ? loadError.message : "분석 데이터를 불러오지 못했습니다.");
+      if (active) setScenarioError(loadError instanceof Error ? loadError.message : "분석 데이터를 불러오지 못했습니다.");
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
   }, [scenario]);
 
+  const error = scenarioError ?? staticError;
   if (error && !overview) return <main className="admin-shell"><p className="loading-screen">{error}</p></main>;
   if (!overview) return <main className="admin-shell"><p className="loading-screen">정책 분석 데이터 로딩 중</p></main>;
   const maxDistrict = Math.max(...districts.map((item) => item.runmileUsed));
@@ -65,7 +77,7 @@ export default function AdminPage() {
   const topEffect = effects[0];
 
   return <main className="admin-shell">
-    <aside className="admin-sidebar"><Link className="brand" href="/">RUN<span>MILE</span></Link><div className="sidebar-title">운영 분석</div><nav><a className="active" href="#where"><span>01</span> 집행 분포</a><a href="#effect"><span>02</span> 효과 추정</a><a href="#next"><span>03</span> 분석 요약</a></nav><div className="sidebar-bottom"><span className="live-dot" /> 분석 모델<br /><strong>{overview.scenario}</strong><Link href="/participant">← 참가자 화면</Link></div></aside>
+    <aside className="admin-sidebar"><Link className="brand" href="/">RUN<span>MILE</span></Link><div className="sidebar-title">운영 분석</div><nav><a className="active" href="#where"><span>01</span> 집행 분포</a><a href="#effect"><span>02</span> 효과 추정</a><a href="#evaluation"><span>03</span> 모델 검증</a><a href="#next"><span>04</span> 분석 요약</a></nav><div className="sidebar-bottom"><span className="live-dot" /> 분석 모델<br /><strong>{overview.scenario}</strong><Link href="/participant">← 참가자 화면</Link></div></aside>
     <section className="admin-content">
       <header className="admin-header"><div><h1>RunMile 정책 효과 분석</h1><p>2026 대구마라톤 연계 사업</p></div><div className="admin-controls"><div className="scenario-control"><span>정책 강도</span><div className="scenario-selector" aria-label="정책 시나리오">{scenarios.map((item) => <button key={item.value} type="button" className={scenario === item.value ? "selected" : ""} aria-pressed={scenario === item.value} disabled={loading} onClick={() => setScenario(item.value)}>{item.label}</button>)}</div><small>{loading ? "분석 결과 갱신 중" : `${overview.scenario} 시나리오`}</small></div><div className="report-date"><span>분석 기준일</span><b>{reportDate || "-"}</b></div></div></header>
       {error && <div className="admin-error" role="alert">{error}</div>}
