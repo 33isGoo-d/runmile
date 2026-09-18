@@ -16,7 +16,9 @@ import com.runmile.wallet.repository.RunMileWalletRepository;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class WalletService {
@@ -26,17 +28,20 @@ public class WalletService {
     private final RunMileTransactionRepository transactionRepository;
     private final CompletionRepository completionRepository;
     private final NftVerificationService nftVerificationService;
+    private final TransactionTemplate transactionTemplate;
 
     public WalletService(
             RunMileWalletRepository walletRepository,
             RunMileTransactionRepository transactionRepository,
             CompletionRepository completionRepository,
-            NftVerificationService nftVerificationService
+            NftVerificationService nftVerificationService,
+            PlatformTransactionManager transactionManager
     ) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.completionRepository = completionRepository;
         this.nftVerificationService = nftVerificationService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +57,6 @@ public class WalletService {
                 .toList();
     }
 
-    @Transactional
     public RunMileIssueResponse issue(Long runnerId, long amount) {
         if (amount != COMPLETION_REWARD) {
             throw new ApiException(
@@ -85,6 +89,15 @@ public class WalletService {
             );
         }
 
+        RunMileIssueResponse response = transactionTemplate.execute(status ->
+                issueWithinTransaction(runnerId, amount));
+        if (response == null) {
+            throw new IllegalStateException("RunMile 지급 트랜잭션 결과가 없습니다.");
+        }
+        return response;
+    }
+
+    private RunMileIssueResponse issueWithinTransaction(Long runnerId, long amount) {
         RunMileWallet wallet = walletRepository.findByRunnerIdForUpdate(runnerId)
                 .orElseThrow(this::walletNotFound);
         if (transactionRepository.existsByWalletIdAndType(

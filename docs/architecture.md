@@ -80,27 +80,24 @@ Did this participant complete the marathon and qualify for RunMile?
 Responsibilities:
 
 - completion-record trust
-- NFT/DID-based reward eligibility verification
+- completion-proof-based reward eligibility verification
 
 RunMile itself is not issued as a blockchain token. The project does not build a new blockchain network.
 
-The prototype uses:
+The prototype uses a public testnet adapter rather than an official Daegu Chain integration:
 
 ```text
 BlockchainVerificationPort
           │
           ▼
-MockDaeguChainAdapter
+DaeguChainAdapter (Polygon Amoy testnet)
 ```
 
-If real integration becomes available later, the external adapter can be replaced:
+The Amoy implementation creates a zero-value self-transfer whose input is a SHA-256 digest of the runner and completion record. Verification checks the configured chain ID, mined receipt, transaction hash, signer, recipient, zero value, exact completion payload, and minimum confirmation count. RPC failures are distinguished from invalid proofs and surfaced as a temporary service-unavailable response. Verification results use a bounded short-lived cache so repeated public API requests for the same proof do not repeatedly consume external RPC capacity.
 
-```text
-BlockchainVerificationPort
-          │
-          ▼
-DaeguChainAdapter
-```
+The normal backend requires only the trusted public address. The private key is used solely by the local one-time anchoring command and must not be configured in the deployment environment. Anchoring targets one runner by default, while batch anchoring requires an explicit opt-in. If the chain transaction succeeds but the database update fails, an operator can provide the runner ID and existing transaction hash to verify the same transaction and recover the database state without sending another transaction.
+
+This is a real public-testnet transaction, but it is not an ERC-721 NFT or smart contract. The legacy `nft_record` and `/nft` names remain only to preserve the MVP database and API contracts.
 
 ### 4.2 RunMile
 
@@ -195,8 +192,8 @@ Do not claim perfect causal proof.
 └───────┬─────────────────┬─────────┘
         │                 │
         ▼                 ▼
- MockDaeguChain      MockDaeguPay
-   Adapter             Adapter
+ Polygon Amoy        MockDaeguPay
+ Chain Adapter         Adapter
         │                 │
         └────────┬────────┘
                  ▼
@@ -405,7 +402,6 @@ Working End-to-End Flow > Feature Count
 Do not implement:
 
 - real financial payment
-- real Daegu Chain integration
 - new blockchain
 - new local currency
 - RunMile token

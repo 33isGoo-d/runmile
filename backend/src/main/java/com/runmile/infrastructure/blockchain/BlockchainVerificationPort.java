@@ -1,6 +1,9 @@
 package com.runmile.infrastructure.blockchain;
 
 public interface BlockchainVerificationPort {
-    boolean isNftVerified(Long runnerId);
+    BlockchainVerificationResult verify(
+            CompletionAnchorPayload payload,
+            String transactionHash,
+            String network
+    );
 }
-

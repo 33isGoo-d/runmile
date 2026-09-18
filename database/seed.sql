@@ -19,10 +19,10 @@ INSERT INTO nft_record (
 SELECT
     runner.id,
     completion.id,
-    'DAEGU-MARATHON-2026-00001',
-    'DAEGU_CHAIN_MOCK',
-    true,
-    '2026-02-22T12:35:00+09:00'
+    'PENDING-RUNNER-00001',
+    'PENDING',
+    false,
+    NULL
 FROM runner
 JOIN completion ON completion.runner_id = runner.id
 WHERE runner.runner_code = 'RUNNER_00001'

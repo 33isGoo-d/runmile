@@ -20,6 +20,8 @@ NNN_short_description.sql
 ```bash
 docker compose exec -T postgres psql -U runmile -d runmile \
   < database/migrations/001_ai_evaluation.sql
+docker compose exec -T postgres psql -U runmile -d runmile \
+  < database/migrations/002_replace_mock_blockchain_records.sql
 ```
 
 새 migration을 추가한 사람은 적용 명령과 순서를 PR 본문에 기록한다.

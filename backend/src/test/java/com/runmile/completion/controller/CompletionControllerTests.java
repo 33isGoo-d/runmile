@@ -64,15 +64,15 @@ class CompletionControllerTests {
     @Test
     void NFT_조회_응답을_반환한다() throws Exception {
         when(nftVerificationService.getNftVerification(1L)).thenReturn(new NftVerificationResponse(
-                "DAEGU-MARATHON-2026-00001",
-                "DAEGU_CHAIN_MOCK",
+                "0x" + "ab".repeat(32),
+                "POLYGON_AMOY",
                 true
         ));
 
         mockMvc.perform(get("/api/v1/runners/1/nft"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tokenId").value("DAEGU-MARATHON-2026-00001"))
-                .andExpect(jsonPath("$.network").value("DAEGU_CHAIN_MOCK"))
+                .andExpect(jsonPath("$.tokenId").value("0x" + "ab".repeat(32)))
+                .andExpect(jsonPath("$.network").value("POLYGON_AMOY"))
                 .andExpect(jsonPath("$.verified").value(true));
     }
 

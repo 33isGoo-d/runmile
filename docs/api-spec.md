@@ -74,15 +74,28 @@ Response:
 
 ```json
 {
-  "tokenId": "DAEGU-MARATHON-2026-00001",
-  "network": "DAEGU_CHAIN_MOCK",
+  "tokenId": "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "network": "POLYGON_AMOY",
   "verified": true
 }
 ```
 
-Prototype verification is performed by `MockDaeguChainAdapter`.
+`tokenId` contains a Polygon Amoy transaction hash. The backend verifies that the chain ID, transaction status, hash, signer, recipient, zero value, minimum confirmation count, and payload exactly match the stored completion record. A record remains `PENDING` and unverified until anchoring succeeds. This is a completion-proof anchor, not an ERC-721 token issuance.
 
 Frontend must not decide or send NFT verification results.
+
+If the configured blockchain RPC is temporarily unavailable, the API returns:
+
+```http
+503 Service Unavailable
+```
+
+```json
+{
+  "code": "BLOCKCHAIN_UNAVAILABLE",
+  "message": "블록체인 검증 서비스에 일시적으로 연결할 수 없습니다."
+}
+```
 
 ## 5. RunMile Issue
 
