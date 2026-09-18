@@ -79,3 +79,20 @@ export type PolicyEffect = {
   effectRatio: number | null;
 };
 export type Insight = { type: string; title: string; description: string };
+
+export type AiEvaluation = {
+  baseline: {
+    mae: number;
+    mape: number;
+    rmse: number;
+    evaluatedAt: string;
+  } | null;
+  effects: Array<{
+    scenario: Scenario;
+    injectedEffect: number;
+    estimatedEffect: number;
+    difference: number;
+    differencePct: number | null;
+    evaluatedAt: string;
+  }>;
+};

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getApi } from "@/lib/api";
 import { formatWon, merchantCategoryLabel } from "@/lib/presentation";
-import type { AnalyticsOverview, CategoryAnalytics, DistrictAnalytics, Insight, PolicyEffect, Scenario } from "@/types/contracts";
+import type { AiEvaluation, AnalyticsOverview, CategoryAnalytics, DistrictAnalytics, Insight, PolicyEffect, Scenario } from "@/types/contracts";
 
 const compactWon = (value: number) => `${(value / 100000000).toFixed(value >= 100000000 ? 1 : 2)}억`;
 const formatEffectRatio = (value: number | null) => value == null ? "산정 불가" : `${value.toFixed(2)}배`;
@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<CategoryAnalytics[]>([]);
   const [effects, setEffects] = useState<PolicyEffect[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [evaluation, setEvaluation] = useState<AiEvaluation>({ baseline: null, effects: [] });
   const [scenario, setScenario] = useState<Scenario>("MEDIUM");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +44,12 @@ export default function AdminPage() {
     setError(null);
     void Promise.all([
       getApi<AnalyticsOverview>(`/admin/analytics/overview${query}`), getApi<DistrictAnalytics[]>(`/admin/analytics/districts${query}`),
-      getApi<CategoryAnalytics[]>("/admin/analytics/categories"), getApi<PolicyEffect[]>(`/admin/analytics/effects${query}`), getApi<Insight[]>(`/admin/analytics/insights${query}`)
-    ]).then(([nextOverview, nextDistricts, nextCategories, nextEffects, nextInsights]) => {
+      getApi<CategoryAnalytics[]>("/admin/analytics/categories"), getApi<PolicyEffect[]>(`/admin/analytics/effects${query}`), getApi<Insight[]>(`/admin/analytics/insights${query}`),
+      getApi<AiEvaluation>("/admin/analytics/evaluation")
+    ]).then(([nextOverview, nextDistricts, nextCategories, nextEffects, nextInsights, nextEvaluation]) => {
       if (!active) return;
       setOverview(nextOverview); setDistricts(nextDistricts); setCategories(nextCategories); setEffects(nextEffects); setInsights(nextInsights);
+      setEvaluation(nextEvaluation);
     }).catch((loadError: unknown) => {
       if (active) setError(loadError instanceof Error ? loadError.message : "분석 데이터를 불러오지 못했습니다.");
     }).finally(() => {
@@ -77,6 +80,12 @@ export default function AdminPage() {
       <section className="dashboard-section effect-section" id="effect"><div className="dashboard-heading"><div><p className="section-kicker">AI 효과 추정</p><h2>정책 효과 추정 결과</h2></div></div>
         <div className="effect-layout"><article className="effect-hero"><span>추정 추가 소비액</span><strong>{compactWon(overview.estimatedIncrementalSales)}<small>원</small></strong><div><b>{overview.effectRatio == null ? "산정 불가" : `${overview.effectRatio.toFixed(2)}×`}</b><span>예산 대비 효과비율</span></div></article><article className="effect-method"><h3>효과 산출 기준</h3><div><span>01</span><p><b>기준 매출 예측</b></p></div><div><span>02</span><p><b>비교군 보정</b></p></div><div><span>03</span><p><b>추정 추가 소비 산출</b></p></div>{topEffect && <footer><b>{topEffect.scopeValue} 추정 추가 소비</b> <strong>{formatWon(topEffect.estimatedIncrementalSales)}</strong></footer>}</article></div>
         <p className="method-note">* 시뮬레이션 데이터와 비교군 보정에 기반한 AI 추정치이며, 실제 정책 성과를 확정적으로 의미하지 않습니다.</p>
+      </section>
+
+      <section className="dashboard-section evaluation-section" id="evaluation"><div className="dashboard-heading"><div><p className="section-kicker">모델 검증</p><h2>AI 평가 지표</h2></div></div>
+        {evaluation.baseline ? <><div className="metric-grid"><article><span>MAE</span><strong>{formatWon(Math.round(evaluation.baseline.mae))}</strong><small>평균 절대 오차</small></article><article><span>MAPE</span><strong>{(evaluation.baseline.mape * 100).toFixed(1)}%</strong><small>평균 절대 백분율 오차</small></article><article><span>RMSE</span><strong>{formatWon(Math.round(evaluation.baseline.rmse))}</strong><small>큰 오차에 가중된 지표</small></article></div>
+          <div className="evaluation-table"><table><thead><tr><th>시나리오</th><th>주입 효과</th><th>추정 효과</th><th>추정 오차</th><th>오차율</th></tr></thead><tbody>{evaluation.effects.map((item) => <tr key={item.scenario}><th>{item.scenario}</th><td>{formatWon(item.injectedEffect)}</td><td>{formatWon(item.estimatedEffect)}</td><td>{formatWon(item.difference)}</td><td>{item.differencePct == null ? "산정 불가" : `${item.differencePct.toFixed(1)}%`}</td></tr>)}</tbody></table></div></> : <p className="evaluation-empty">AI 배치를 실행하면 모델 검증 지표가 표시됩니다.</p>}
+        <p className="evaluation-note">합성 데이터에 주입한 효과와 모델 추정값을 비교한 검증 지표입니다. 실제 정책 성과를 의미하지 않습니다.</p>
       </section>
 
       <section className="dashboard-section next-section" id="next"><div className="dashboard-heading"><div><p className="section-kicker">분석 요약</p><h2>집행 데이터 주요 결과</h2></div></div><div className="insight-grid">{insights.map((insight, index) => <article key={`${insight.type}-${index}`}><span className="insight-index">분석 {String(index + 1).padStart(2, "0")}</span><h3>{insight.title}</h3><p>{insight.description}</p></article>)}</div></section>
