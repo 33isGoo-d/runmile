@@ -152,6 +152,10 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .merchant-result.selected .merchant-select-text { opacity: 1; }
 .merchant-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: #4f504e; font-size: 13px; font-weight: 750; }
 .merchant-more span { color: var(--text-muted); font-size: 11px; }
+.merchant-map-shell { position: relative; min-height: 460px; margin-top: 20px; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-background); }
+.merchant-map { width: 100%; height: 460px; }
+.map-count { position: absolute; right: 12px; bottom: 12px; z-index: 2; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text-secondary); font-size: 11px; font-weight: 750; }
+.map-fallback { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 24px; background: var(--muted-background); color: var(--text-secondary); font-size: 13px; text-align: center; }
 
 .payment-area { display: grid; grid-template-columns: 280px 1fr; gap: 48px; margin-top: 16px; padding: 34px 36px; border-radius: var(--radius); background: var(--surface); }
 .payment-header p { margin: 9px 0 0; color: var(--text-secondary); font-size: 14px; }
@@ -304,6 +308,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   .district-filter select { width: 100%; }
   .merchant-results { grid-template-columns: 1fr; }
   .merchant-result { min-height: 84px; }
+  .merchant-map-shell, .merchant-map { min-height: 360px; height: 360px; }
   .payment-area { grid-template-columns: 1fr; gap: 24px; }
   .payment-content { display: grid; gap: 20px; }
   .payment-action { width: 100%; }

@@ -15,7 +15,20 @@ POSTGRES_USER = os.getenv("POSTGRES_USER", "runmile")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "runmile_dev_password")
 SCENARIOS = ("NONE", "LOW", "MEDIUM", "HIGH")
 MERCHANT_CATEGORIES = ("RESTAURANT", "CAFE", "RETAIL", "ACCOMMODATION", "OTHER")
-DISTRICTS = ("중구", "동구", "서구", "남구", "북구", "수성구", "달서구")
+DISTRICTS = (
+    "중구", "동구", "서구", "남구", "북구", "수성구", "달서구", "달성군", "군위군"
+)
+DISTRICT_CENTERS = {
+    "중구": (35.8694, 128.6062),
+    "동구": (35.8867, 128.6356),
+    "서구": (35.8718, 128.5592),
+    "남구": (35.8460, 128.5977),
+    "북구": (35.8858, 128.5829),
+    "수성구": (35.8582, 128.6307),
+    "달서구": (35.8299, 128.5327),
+    "달성군": (35.7747, 128.4311),
+    "군위군": (36.2429, 128.5728),
+}
 
 # Fixed category codes for model features so encoding stays identical across
 # training, validation, and prediction (pandas' .cat.codes reorders per-subset).

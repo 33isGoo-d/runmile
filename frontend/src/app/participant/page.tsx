@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import KakaoMerchantMap from "@/components/KakaoMerchantMap";
 import { getApi, postApi, RunMileApiError } from "@/lib/api";
 import { formatWon, merchantCategoryLabel } from "@/lib/presentation";
 import type { Completion, Merchant, MerchantCategory, NftRecord, Payment, Runner, RunMileTransaction, Wallet } from "@/types/contracts";
@@ -24,6 +25,7 @@ export default function ParticipantPage() {
   const [category, setCategory] = useState<MerchantCategory | "ALL">("ALL");
   const [district, setDistrict] = useState("ALL");
   const [visibleCount, setVisibleCount] = useState(INITIAL_MERCHANT_COUNT);
+  const [merchantView, setMerchantView] = useState<"LIST" | "MAP">("LIST");
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -84,6 +86,11 @@ export default function ParticipantPage() {
     setPayment(null);
   };
 
+  const selectMerchant = useCallback((merchant: Merchant) => {
+    setSelectedMerchant(merchant);
+    setPayment(null);
+  }, []);
+
   const issue = async () => {
     setIssuing(true); setNotice(null);
     try {
@@ -142,16 +149,16 @@ export default function ParticipantPage() {
       </section>
 
       <section className="merchant-finder" id="merchants">
-        <div className="section-intro"><div><h2>어디에서 쓸까요?</h2></div><button className="subtle-action" type="button">지도 보기</button></div>
+        <div className="section-intro"><div><h2>어디에서 쓸까요?</h2></div><button className="subtle-action" type="button" aria-pressed={merchantView === "MAP"} onClick={() => setMerchantView((view) => view === "LIST" ? "MAP" : "LIST")}>{merchantView === "LIST" ? "지도 보기" : "목록 보기"}</button></div>
         <div className="merchant-filters">
           <div className="filter-control" role="tablist" aria-label="가맹점 업종 필터">{categories.map((value) => <button key={value} type="button" role="tab" aria-selected={category === value} className={category === value ? "selected" : ""} onClick={() => changeFilters(value, district)}>{value === "ALL" ? "전체" : merchantCategoryLabel[value]}</button>)}</div>
           <label className="district-filter">지역<select value={district} onChange={(event) => changeFilters(category, event.target.value)}><option value="ALL">전체 구·군</option>{districts.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         </div>
         <p className="merchant-result-count">사용처 {filteredMerchants.length.toLocaleString("ko-KR")}곳</p>
-        <div className="merchant-results">{visibleMerchants.map((merchant) => <button key={merchant.id} onClick={() => { setSelectedMerchant(merchant); setPayment(null); }} className={`merchant-result ${selectedMerchant?.id === merchant.id ? "selected" : ""}`}>
+        {merchantView === "MAP" ? <KakaoMerchantMap merchants={filteredMerchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={selectMerchant} /> : <><div className="merchant-results">{visibleMerchants.map((merchant) => <button key={merchant.id} onClick={() => selectMerchant(merchant)} className={`merchant-result ${selectedMerchant?.id === merchant.id ? "selected" : ""}`}>
           <span className="merchant-monogram">{merchant.name.slice(0, 1)}</span><span className="merchant-copy"><b>{merchant.name}</b><span>{merchantCategoryLabel[merchant.category]} · {merchant.district}</span><small>{merchant.address} · RunMile 사용 가능</small></span><span className="merchant-select-text">선택</span>
         </button>)}{filteredMerchants.length === 0 && <p className="merchant-empty">조건에 맞는 사용처가 없습니다.</p>}</div>
-        {visibleCount < filteredMerchants.length && <button className="merchant-more" type="button" onClick={() => setVisibleCount((count) => count + INITIAL_MERCHANT_COUNT)}>사용처 더보기 <span>{Math.min(INITIAL_MERCHANT_COUNT, filteredMerchants.length - visibleCount)}곳</span></button>}
+        {visibleCount < filteredMerchants.length && <button className="merchant-more" type="button" onClick={() => setVisibleCount((count) => count + INITIAL_MERCHANT_COUNT)}>사용처 더보기 <span>{Math.min(INITIAL_MERCHANT_COUNT, filteredMerchants.length - visibleCount)}곳</span></button>}</>}
       </section>
 
       <section className="payment-area" aria-labelledby="payment-title"><div className="payment-header"><div><h2 id="payment-title">결제 미리보기</h2><p>{selectedMerchant?.name ?? "가맹점을 선택해 주세요"}</p></div>{selectedMerchant && <span>RunMile 사용 가능</span>}</div>
