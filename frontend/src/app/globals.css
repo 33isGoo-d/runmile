@@ -33,6 +33,8 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .45; }
 .loading-screen { display: grid; min-height: 100vh; place-items: center; color: var(--text-secondary); font-size: 14px; }
+.loading-error { align-content: center; gap: 14px; }
+.loading-error button { border: 0; border-radius: 8px; padding: 10px 14px; background: var(--daegu-red); color: white; font-weight: 750; }
 .brand { color: var(--text); font-size: 21px; font-weight: 800; letter-spacing: -.06em; }
 .brand span { color: var(--daegu-red); }
 .button, .primary-action {
@@ -206,7 +208,8 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .scenario-selector { display: flex; padding: 3px; border-radius: 8px; background: var(--muted-background); }
 .scenario-selector button { min-width: 48px; border: 0; border-radius: 6px; padding: 7px 9px; background: transparent; color: var(--text-secondary); font-size: 11px; font-weight: 750; }
 .scenario-selector button.selected { background: var(--surface); color: var(--data-blue); box-shadow: 0 1px 3px #00000012; }
-.admin-error { max-width: 1200px; margin: 14px auto 0; padding: 12px 16px; border-radius: 8px; background: var(--daegu-red-soft); color: #873029; font-size: 12px; }
+.admin-error { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1200px; margin: 14px auto 0; padding: 12px 16px; border-radius: 8px; background: var(--daegu-red-soft); color: #873029; font-size: 12px; }
+.admin-error button { border: 0; padding: 0; background: transparent; color: inherit; font-size: 12px; font-weight: 750; white-space: nowrap; }
 .report-date { color: var(--text-secondary); font-size: 12px; }
 .report-date span, .report-date b { display: block; text-align: right; }
 .report-date b { margin-top: 6px; color: var(--text); font-size: 14px; }
