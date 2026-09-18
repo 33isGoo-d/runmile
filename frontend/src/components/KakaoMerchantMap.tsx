@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { merchantCategoryLabel } from "@/lib/presentation";
+import { formatWon, merchantCategoryLabel, merchantSuggestedAmount } from "@/lib/presentation";
 import type { Merchant } from "@/types/contracts";
 
 interface KakaoLatLng {}
@@ -89,10 +89,12 @@ function createInfoContent(merchant: Merchant): HTMLElement {
   name.textContent = merchant.name;
   const meta = document.createElement("span");
   meta.textContent = `${merchantCategoryLabel[merchant.category]} · ${merchant.district}`;
+  const price = document.createElement("b");
+  price.textContent = `예시 결제 ${formatWon(merchantSuggestedAmount(merchant))}`;
   const address = document.createElement("small");
   address.textContent = merchant.address;
 
-  content.append(name, meta, address);
+  content.append(name, meta, price, address);
   return content;
 }
 

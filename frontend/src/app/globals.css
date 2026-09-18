@@ -161,6 +161,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .map-info-window { display: grid; gap: 3px; width: max-content; max-width: 240px; padding: 11px 13px; color: var(--text-primary); font-family: inherit; }
 .map-info-window strong { overflow: hidden; font-size: 14px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .map-info-window span { color: var(--brand); font-size: 11px; font-weight: 750; }
+.map-info-window b { font-size: 12px; line-height: 1.4; }
 .map-info-window small { overflow: hidden; max-width: 210px; color: var(--text-secondary); font-size: 11px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 
 .payment-area { display: grid; grid-template-columns: 280px 1fr; gap: 48px; margin-top: 16px; padding: 34px 36px; border-radius: var(--radius); background: var(--surface); }

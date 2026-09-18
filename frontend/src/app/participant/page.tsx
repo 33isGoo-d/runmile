@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import KakaoMerchantMap from "@/components/KakaoMerchantMap";
 import { getApi, postApi, RunMileApiError } from "@/lib/api";
-import { formatWon, merchantCategoryLabel } from "@/lib/presentation";
+import { formatWon, merchantCategoryLabel, merchantSuggestedAmount } from "@/lib/presentation";
 import type { Completion, Merchant, MerchantCategory, NftRecord, Payment, Runner, RunMileTransaction, Wallet } from "@/types/contracts";
 
 const RUNNER_ID = 1;
@@ -68,8 +68,8 @@ export default function ParticipantPage() {
     [category, district, merchants]
   );
   const visibleMerchants = filteredMerchants.slice(0, visibleCount);
-  const runmileAmount = Math.min(wallet?.balance ?? 0, 10000);
-  const totalAmount = 35000;
+  const totalAmount = selectedMerchant ? merchantSuggestedAmount(selectedMerchant) : 0;
+  const runmileAmount = Math.min(wallet?.balance ?? 0, 10000, totalAmount);
   const completionVerified = Boolean(completion?.completed && nft?.verified);
   const rewardReceived = (wallet?.totalIssued ?? 0) > 0;
   const paymentCompleted = Boolean(payment || transactions.some((transaction) => transaction.type === "USE"));
@@ -156,7 +156,7 @@ export default function ParticipantPage() {
         </div>
         <p className="merchant-result-count">사용처 {filteredMerchants.length.toLocaleString("ko-KR")}곳</p>
         {merchantView === "MAP" ? <KakaoMerchantMap merchants={filteredMerchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={selectMerchant} /> : <><div className="merchant-results">{visibleMerchants.map((merchant) => <button key={merchant.id} onClick={() => selectMerchant(merchant)} className={`merchant-result ${selectedMerchant?.id === merchant.id ? "selected" : ""}`}>
-          <span className="merchant-monogram">{merchant.name.slice(0, 1)}</span><span className="merchant-copy"><b>{merchant.name}</b><span>{merchantCategoryLabel[merchant.category]} · {merchant.district}</span><small>{merchant.address} · RunMile 사용 가능</small></span><span className="merchant-select-text">선택</span>
+          <span className="merchant-monogram">{merchant.name.slice(0, 1)}</span><span className="merchant-copy"><b>{merchant.name}</b><span>{merchantCategoryLabel[merchant.category]} · {merchant.district}</span><small>{merchant.address} · 예시 결제 {formatWon(merchantSuggestedAmount(merchant))} · RunMile 사용 가능</small></span><span className="merchant-select-text">선택</span>
         </button>)}{filteredMerchants.length === 0 && <p className="merchant-empty">조건에 맞는 사용처가 없습니다.</p>}</div>
         {visibleCount < filteredMerchants.length && <button className="merchant-more" type="button" onClick={() => setVisibleCount((count) => count + INITIAL_MERCHANT_COUNT)}>사용처 더보기 <span>{Math.min(INITIAL_MERCHANT_COUNT, filteredMerchants.length - visibleCount)}곳</span></button>}</>}
       </section>
