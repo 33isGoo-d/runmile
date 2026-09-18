@@ -7,6 +7,7 @@ import { formatWon, merchantCategoryLabel } from "@/lib/presentation";
 import type { Completion, Merchant, MerchantCategory, NftRecord, Payment, Runner, RunMileTransaction, Wallet } from "@/types/contracts";
 
 const RUNNER_ID = 1;
+const INITIAL_MERCHANT_COUNT = 12;
 const categories: Array<MerchantCategory | "ALL"> = ["ALL", "RESTAURANT", "CAFE", "RETAIL"];
 const mile = (amount: number) => `${amount.toLocaleString("ko-KR")} RunMile`;
 const courseName: Record<string, string> = { FULL: "풀코스", TEN_K: "10km", FIVE_K: "5km" };
@@ -21,6 +22,8 @@ export default function ParticipantPage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
   const [category, setCategory] = useState<MerchantCategory | "ALL">("ALL");
+  const [district, setDistrict] = useState("ALL");
+  const [visibleCount, setVisibleCount] = useState(INITIAL_MERCHANT_COUNT);
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -51,10 +54,35 @@ export default function ParticipantPage() {
     void load();
   }, []);
 
-  const filteredMerchants = useMemo(() => category === "ALL" ? merchants : merchants.filter((merchant) => merchant.category === category), [category, merchants]);
+  const districts = useMemo(
+    () => [...new Set(merchants.map((merchant) => merchant.district))].sort((left, right) => left.localeCompare(right, "ko")),
+    [merchants]
+  );
+  const filteredMerchants = useMemo(
+    () => merchants.filter((merchant) =>
+      (category === "ALL" || merchant.category === category) &&
+      (district === "ALL" || merchant.district === district)
+    ),
+    [category, district, merchants]
+  );
+  const visibleMerchants = filteredMerchants.slice(0, visibleCount);
   const runmileAmount = Math.min(wallet?.balance ?? 0, 10000);
   const totalAmount = 35000;
+  const completionVerified = Boolean(completion?.completed && nft?.verified);
   const rewardReceived = (wallet?.totalIssued ?? 0) > 0;
+  const paymentCompleted = Boolean(payment || transactions.some((transaction) => transaction.type === "USE"));
+
+  const changeFilters = (nextCategory: MerchantCategory | "ALL", nextDistrict: string) => {
+    const nextMerchants = merchants.filter((merchant) =>
+      (nextCategory === "ALL" || merchant.category === nextCategory) &&
+      (nextDistrict === "ALL" || merchant.district === nextDistrict)
+    );
+    setCategory(nextCategory);
+    setDistrict(nextDistrict);
+    setVisibleCount(INITIAL_MERCHANT_COUNT);
+    setSelectedMerchant(nextMerchants[0] ?? null);
+    setPayment(null);
+  };
 
   const issue = async () => {
     setIssuing(true); setNotice(null);
@@ -88,11 +116,11 @@ export default function ParticipantPage() {
           <h1>완주를 축하해요,<br />러너님</h1>
           <p>이번 완주 보상</p>
           <strong>+10,000 <span>RunMile</span></strong>
-          {!rewardReceived && <button className="primary-action" onClick={issue} disabled={issuing || !nft?.verified}>{issuing ? "지급 중" : "보상 받기"}</button>}
+          {!rewardReceived && <button className="primary-action" onClick={issue} disabled={issuing || !completionVerified}>{issuing ? "지급 중" : "보상 받기"}</button>}
           <a className="find-merchant-action" href="#merchants">사용처 찾기</a>
         </div>
         <article className="completion-card">
-          <header><div><p>2026 대구마라톤</p><span>{courseName[completion?.course ?? "FULL"]}</span></div><b>완주 인증 완료</b></header>
+          <header><div><p>2026 대구마라톤</p><span>{courseName[completion?.course ?? "FULL"]}</span></div><b>{completionVerified ? "완주 인증 완료" : "완주 인증 대기"}</b></header>
           <div className="distance-result"><strong>{courseDistance[completion?.course ?? "FULL"]}</strong><span>km</span></div>
           <div className="run-track" aria-label="출발부터 완주까지의 러닝 경로">
             <div className="track-rail"><span className="moving-point" /><i className="finish-marker">✓</i></div>
@@ -103,10 +131,10 @@ export default function ParticipantPage() {
       </section>
 
       <ol className="service-flow" aria-label="RunMile 이용 흐름">
-        <li className="done"><span /><b>완주 확인</b></li>
-        <li className="done"><span /><b>보상 지급</b></li>
-        <li className="active"><span /><b>사용처 찾기</b></li>
-        <li><span /><b>지역 소비</b></li>
+        <li className={completionVerified ? "done" : "active"}><span /><b>완주 확인</b></li>
+        <li className={rewardReceived ? "done" : completionVerified ? "active" : ""}><span /><b>보상 지급</b></li>
+        <li className={paymentCompleted ? "done" : rewardReceived ? "active" : ""}><span /><b>사용처 찾기</b></li>
+        <li className={paymentCompleted ? "active" : ""}><span /><b>지역 소비</b></li>
       </ol>
 
       <section className="account-overview" aria-label="RunMile 지갑">
@@ -115,10 +143,15 @@ export default function ParticipantPage() {
 
       <section className="merchant-finder" id="merchants">
         <div className="section-intro"><div><h2>어디에서 쓸까요?</h2></div><button className="subtle-action" type="button">지도 보기</button></div>
-        <div className="filter-control" role="tablist" aria-label="가맹점 업종 필터">{categories.map((value) => <button key={value} className={category === value ? "selected" : ""} onClick={() => setCategory(value)}>{value === "ALL" ? "전체" : merchantCategoryLabel[value]}</button>)}</div>
-        <div className="merchant-results">{filteredMerchants.map((merchant) => <button key={merchant.id} onClick={() => { setSelectedMerchant(merchant); setPayment(null); }} className={`merchant-result ${selectedMerchant?.id === merchant.id ? "selected" : ""}`}>
+        <div className="merchant-filters">
+          <div className="filter-control" role="tablist" aria-label="가맹점 업종 필터">{categories.map((value) => <button key={value} type="button" role="tab" aria-selected={category === value} className={category === value ? "selected" : ""} onClick={() => changeFilters(value, district)}>{value === "ALL" ? "전체" : merchantCategoryLabel[value]}</button>)}</div>
+          <label className="district-filter">지역<select value={district} onChange={(event) => changeFilters(category, event.target.value)}><option value="ALL">전체 구·군</option>{districts.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        </div>
+        <p className="merchant-result-count">사용처 {filteredMerchants.length.toLocaleString("ko-KR")}곳</p>
+        <div className="merchant-results">{visibleMerchants.map((merchant) => <button key={merchant.id} onClick={() => { setSelectedMerchant(merchant); setPayment(null); }} className={`merchant-result ${selectedMerchant?.id === merchant.id ? "selected" : ""}`}>
           <span className="merchant-monogram">{merchant.name.slice(0, 1)}</span><span className="merchant-copy"><b>{merchant.name}</b><span>{merchantCategoryLabel[merchant.category]} · {merchant.district}</span><small>{merchant.address} · RunMile 사용 가능</small></span><span className="merchant-select-text">선택</span>
         </button>)}{filteredMerchants.length === 0 && <p className="merchant-empty">조건에 맞는 사용처가 없습니다.</p>}</div>
+        {visibleCount < filteredMerchants.length && <button className="merchant-more" type="button" onClick={() => setVisibleCount((count) => count + INITIAL_MERCHANT_COUNT)}>사용처 더보기 <span>{Math.min(INITIAL_MERCHANT_COUNT, filteredMerchants.length - visibleCount)}곳</span></button>}
       </section>
 
       <section className="payment-area" aria-labelledby="payment-title"><div className="payment-header"><div><h2 id="payment-title">결제 미리보기</h2><p>{selectedMerchant?.name ?? "가맹점을 선택해 주세요"}</p></div>{selectedMerchant && <span>RunMile 사용 가능</span>}</div>

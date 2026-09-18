@@ -135,6 +135,10 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .filter-control { display: flex; width: max-content; margin-top: 28px; padding: 3px; border-radius: 9px; background: var(--muted-background); }
 .filter-control button { min-width: 68px; border: 0; border-radius: 7px; padding: 8px 12px; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 750; }
 .filter-control button.selected { background: var(--surface); color: var(--daegu-red); box-shadow: 0 1px 3px #0000000d; }
+.merchant-filters { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.district-filter { display: grid; gap: 6px; color: var(--text-secondary); font-size: 11px; font-weight: 750; }
+.district-filter select { min-width: 130px; height: 38px; border: 1px solid var(--border); border-radius: 8px; padding: 0 30px 0 11px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }
+.merchant-result-count { margin: 18px 0 -6px; color: var(--text-secondary); font-size: 12px; }
 .merchant-results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 32px; margin-top: 20px; }
 .merchant-empty { grid-column: 1 / -1; margin: 20px 0 4px; color: var(--text-secondary); font-size: 14px; }
 .merchant-result { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 16px 4px; border: 0; border-bottom: 1px solid var(--border); background: transparent; text-align: left; }
@@ -146,6 +150,8 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .merchant-copy small { color: var(--text-muted); font-size: 11px; }
 .merchant-select-text { margin-left: auto; color: var(--daegu-red); font-size: 12px; font-weight: 750; opacity: 0; }
 .merchant-result.selected .merchant-select-text { opacity: 1; }
+.merchant-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: #4f504e; font-size: 13px; font-weight: 750; }
+.merchant-more span { color: var(--text-muted); font-size: 11px; }
 
 .payment-area { display: grid; grid-template-columns: 280px 1fr; gap: 48px; margin-top: 16px; padding: 34px 36px; border-radius: var(--radius); background: var(--surface); }
 .payment-header p { margin: 9px 0 0; color: var(--text-secondary); font-size: 14px; }
@@ -285,6 +291,8 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   .section-intro h2, .payment-header h2 { font-size: 23px; }
   .filter-control { width: 100%; overflow: auto; }
   .filter-control button { flex: 1; min-width: 60px; }
+  .merchant-filters { align-items: stretch; flex-direction: column; gap: 14px; }
+  .district-filter select { width: 100%; }
   .merchant-results { grid-template-columns: 1fr; }
   .merchant-result { min-height: 84px; }
   .payment-area { grid-template-columns: 1fr; gap: 24px; }
