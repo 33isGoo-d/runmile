@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [staticError, setStaticError] = useState<string | null>(null);
   const [scenarioError, setScenarioError] = useState<string | null>(null);
+  const [staticRetry, setStaticRetry] = useState(0);
+  const [scenarioRetry, setScenarioRetry] = useState(0);
   const [reportDate, setReportDate] = useState("");
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function AdminPage() {
       year: "numeric", month: "2-digit", day: "2-digit"
     }).format(new Date()));
     let active = true;
+    setStaticError(null);
     void Promise.all([
       getApi<CategoryAnalytics[]>("/admin/analytics/categories"),
       getApi<AiEvaluation>("/admin/analytics/evaluation")
@@ -48,7 +51,7 @@ export default function AdminPage() {
       if (active) setStaticError(loadError instanceof Error ? loadError.message : "공통 분석 데이터를 불러오지 못했습니다.");
     });
     return () => { active = false; };
-  }, []);
+  }, [staticRetry]);
 
   useEffect(() => {
     let active = true;
@@ -67,10 +70,15 @@ export default function AdminPage() {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [scenario]);
+  }, [scenario, scenarioRetry]);
+
+  const retryFailedRequests = () => {
+    if (staticError) setStaticRetry((value) => value + 1);
+    if (scenarioError) setScenarioRetry((value) => value + 1);
+  };
 
   const error = scenarioError ?? staticError;
-  if (error && !overview) return <main className="admin-shell"><p className="loading-screen">{error}</p></main>;
+  if (error && !overview) return <main className="admin-shell"><div className="loading-screen loading-error"><span>{error}</span><button type="button" onClick={retryFailedRequests}>다시 시도</button></div></main>;
   if (!overview) return <main className="admin-shell"><p className="loading-screen">정책 분석 데이터 로딩 중</p></main>;
   const maxDistrict = Math.max(...districts.map((item) => item.runmileUsed));
   const maxCategory = Math.max(...categories.map((item) => item.linkedPaymentAmount));
@@ -80,7 +88,7 @@ export default function AdminPage() {
     <aside className="admin-sidebar"><Link className="brand" href="/">RUN<span>MILE</span></Link><div className="sidebar-title">운영 분석</div><nav><a className="active" href="#where"><span>01</span> 집행 분포</a><a href="#effect"><span>02</span> 효과 추정</a><a href="#evaluation"><span>03</span> 모델 검증</a><a href="#next"><span>04</span> 분석 요약</a></nav><div className="sidebar-bottom"><span className="live-dot" /> 분석 모델<br /><strong>{overview.scenario}</strong><Link href="/participant">← 참가자 화면</Link></div></aside>
     <section className="admin-content">
       <header className="admin-header"><div><h1>RunMile 정책 효과 분석</h1><p>2026 대구마라톤 연계 사업</p></div><div className="admin-controls"><div className="scenario-control"><span>정책 강도</span><div className="scenario-selector" aria-label="정책 시나리오">{scenarios.map((item) => <button key={item.value} type="button" className={scenario === item.value ? "selected" : ""} aria-pressed={scenario === item.value} disabled={loading} onClick={() => setScenario(item.value)}>{item.label}</button>)}</div><small>{loading ? "분석 결과 갱신 중" : `${overview.scenario} 시나리오`}</small></div><div className="report-date"><span>분석 기준일</span><b>{reportDate || "-"}</b></div></div></header>
-      {error && <div className="admin-error" role="alert">{error}</div>}
+      {error && <div className="admin-error" role="alert"><span>{error}</span><button type="button" onClick={retryFailedRequests}>다시 시도</button></div>}
       <section className="overview-grid" aria-label="정책 분석 요약"><article><span>배정 예산</span><strong>{compactWon(overview.runmileBudget)}</strong><small>{formatWon(overview.runmileBudget)}</small></article><article><span>RunMile 집행액</span><strong>{compactWon(overview.runmileUsed)}</strong><small>{overview.runmileBudget === 0 ? "예산 집행 없음" : `예산 집행률 ${Math.round((overview.runmileUsed / overview.runmileBudget) * 100)}%`}</small></article><article className="linked"><span>연계 소비 총액</span><strong>{compactWon(overview.linkedPaymentAmount)}</strong><small>RunMile 포함 결제액</small></article><article className="impact"><span>추정 추가 소비액</span><strong>{compactWon(overview.estimatedIncrementalSales)}</strong><small>예산 대비 효과 {formatEffectRatio(overview.effectRatio)}</small></article></section>
 
       <section className="dashboard-section" id="where"><div className="dashboard-heading"><div><p className="section-kicker">지역·업종 집행 분석</p><h2>RunMile 사용 분포</h2></div></div>

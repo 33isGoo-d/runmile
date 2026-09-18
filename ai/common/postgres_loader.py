@@ -45,6 +45,25 @@ def _parse_datetime(value: object, field: str, context: str) -> datetime:
         raise ValueError(f"{context}의 {field} 형식이 올바르지 않습니다: {value}") from error
 
 
+def _validate_required_columns(
+    frame: pd.DataFrame,
+    dataset: str,
+    columns: tuple[str, ...],
+) -> None:
+    missing_columns = [column for column in columns if column not in frame.columns]
+    if missing_columns:
+        raise ValueError(f"{dataset}에 필수 컬럼이 없습니다: {', '.join(missing_columns)}")
+
+    null_counts = frame.loc[:, list(columns)].isna().sum()
+    invalid_columns = [
+        f"{column} {int(count)}건"
+        for column, count in null_counts.items()
+        if count > 0
+    ]
+    if invalid_columns:
+        raise ValueError(f"{dataset}의 필수값이 비어 있습니다: {', '.join(invalid_columns)}")
+
+
 def _merchant_rows(merchants: pd.DataFrame) -> list[tuple]:
     rows = []
     for merchant in merchants.itertuples(index=False):
@@ -105,12 +124,20 @@ def _policy_effect_rows(effects: pd.DataFrame) -> list[tuple]:
                 row.scenario,
                 row.scope_type,
                 row.scope_value,
-                int(row.runmile_budget),
-                int(row.runmile_used),
-                int(row.linked_payment_amount),
-                int(row.actual_sales),
-                int(row.predicted_baseline),
-                int(row.estimated_incremental_sales),
+                int(_required_value(row.runmile_budget, "runmile_budget", context)),
+                int(_required_value(row.runmile_used, "runmile_used", context)),
+                int(_required_value(
+                    row.linked_payment_amount, "linked_payment_amount", context
+                )),
+                int(_required_value(row.actual_sales, "actual_sales", context)),
+                int(_required_value(
+                    row.predicted_baseline, "predicted_baseline", context
+                )),
+                int(_required_value(
+                    row.estimated_incremental_sales,
+                    "estimated_incremental_sales",
+                    context,
+                )),
                 _optional_float(row.effect_ratio),
                 _parse_datetime(row.created_at, "created_at", context),
             )
@@ -179,6 +206,49 @@ def load_results_to_postgres() -> None:
     effects = pd.read_csv(RESULTS_DIR / "policy_effects.csv")
     model_metrics = pd.read_csv(RESULTS_DIR / "model_metrics.csv")
     effect_evaluations = pd.read_csv(RESULTS_DIR / "evaluation_report.csv")
+    _validate_required_columns(
+        merchants,
+        "merchants.csv",
+        (
+            "merchant_id", "merchant_code", "district", "category", "latitude",
+            "longitude", "runmile_enabled",
+        ),
+    )
+    _validate_required_columns(
+        sales,
+        "merchant_daily_sales.csv",
+        (
+            "merchant_id", "date", "sales_amount", "transaction_count", "temperature",
+            "rainfall", "is_weekend", "is_marathon_day", "scenario",
+        ),
+    )
+    _validate_required_columns(
+        predictions,
+        "ai_predictions.csv",
+        ("merchant_id", "date", "scenario", "actual_sales", "predicted_baseline"),
+    )
+    _validate_required_columns(
+        effects,
+        "policy_effects.csv",
+        (
+            "scenario", "scope_type", "scope_value", "runmile_budget", "runmile_used",
+            "linked_payment_amount", "actual_sales", "predicted_baseline",
+            "estimated_incremental_sales", "created_at",
+        ),
+    )
+    _validate_required_columns(
+        model_metrics,
+        "model_metrics.csv",
+        ("metric_name", "metric_value", "evaluated_at"),
+    )
+    _validate_required_columns(
+        effect_evaluations,
+        "evaluation_report.csv",
+        (
+            "scenario", "injected_effect", "estimated_effect", "difference",
+            "evaluated_at",
+        ),
+    )
     model_metric_rows = _model_metric_rows(model_metrics)
     effect_evaluation_rows = _effect_evaluation_rows(effect_evaluations)
 
