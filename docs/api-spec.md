@@ -311,6 +311,12 @@ Numbers are prototype simulation results and do not represent actual policy perf
 
 Returns spending data by district.
 
+Optional query parameter:
+
+```text
+scenario=MEDIUM
+```
+
 Response:
 
 ```json
@@ -327,6 +333,11 @@ Response:
 ```
 
 WHERE is descriptive analytics, not AI analysis.
+
+프로토타입에서 9개 구·군의 실제 결제 표본이 모두 준비되지 않은 경우에는 선택한
+시나리오의 overview 총액과 정확히 일치하도록 배분한 합성 데모 응답을 반환한다.
+9개 구·군의 실제 결제 집계가 준비되고 overview 총액과 일치하면 실제 집계를 반환한다.
+합성 데모 수치는 실제 대구 지역의 정책 성과를 의미하지 않는다.
 
 ## 12. Category Analytics
 
@@ -393,6 +404,12 @@ Estimated Incremental Effect
 ### GET `/admin/analytics/insights`
 
 Returns insight cards generated from policy analysis.
+
+Optional query parameter:
+
+```text
+scenario=MEDIUM
+```
 
 V1 may use rule-based logic instead of an LLM.
 

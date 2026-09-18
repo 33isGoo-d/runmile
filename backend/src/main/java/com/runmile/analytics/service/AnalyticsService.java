@@ -26,6 +26,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AnalyticsService {
+    private static final List<DemoDistrict> DEMO_DISTRICTS = List.of(
+            new DemoDistrict("수성구", 1_800, 55),
+            new DemoDistrict("중구", 1_500, 48),
+            new DemoDistrict("달서구", 1_450, 52),
+            new DemoDistrict("북구", 1_200, 44),
+            new DemoDistrict("동구", 1_100, 42),
+            new DemoDistrict("남구", 900, 36),
+            new DemoDistrict("서구", 800, 32),
+            new DemoDistrict("달성군", 750, 28),
+            new DemoDistrict("군위군", 500, 16)
+    );
+    private static final int TOTAL_WEIGHT = 10_000;
+
     private final PaymentRepository paymentRepository;
     private final PolicyEffectRepository policyEffectRepository;
 
@@ -50,7 +63,7 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public List<DistrictAnalyticsResponse> getDistricts() {
+    public List<DistrictAnalyticsResponse> getDistricts(Scenario scenario) {
         Map<String, List<Payment>> grouped = successfulPayments().stream()
                 .collect(Collectors.groupingBy(
                         payment -> payment.getMerchant().getDistrict(),
@@ -58,10 +71,16 @@ public class AnalyticsService {
                         Collectors.toList()
                 ));
 
-        return grouped.entrySet().stream()
+        List<DistrictAnalyticsResponse> actualDistricts = grouped.entrySet().stream()
                 .map(entry -> toDistrict(entry.getKey(), entry.getValue()))
                 .sorted(Comparator.comparingLong(DistrictAnalyticsResponse::runmileUsed).reversed())
                 .toList();
+        AnalyticsOverviewResponse overview = getOverview(scenario);
+
+        if (isCompleteActualDataset(actualDistricts, overview)) {
+            return actualDistricts;
+        }
+        return createDemoDistricts(overview);
     }
 
     @Transactional(readOnly = true)
@@ -96,8 +115,8 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public List<InsightResponse> getInsights() {
-        List<DistrictAnalyticsResponse> districts = getDistricts();
+    public List<InsightResponse> getInsights(Scenario scenario) {
+        List<DistrictAnalyticsResponse> districts = getDistricts(scenario);
         if (districts.isEmpty()) {
             return List.of(new InsightResponse(
                     "NO_DATA",
@@ -154,6 +173,63 @@ public class AnalyticsService {
         );
     }
 
+    private boolean isCompleteActualDataset(
+            List<DistrictAnalyticsResponse> districts,
+            AnalyticsOverviewResponse overview
+    ) {
+        Set<String> actualNames = districts.stream()
+                .map(DistrictAnalyticsResponse::district)
+                .collect(Collectors.toSet());
+        Set<String> expectedNames = DEMO_DISTRICTS.stream()
+                .map(DemoDistrict::name)
+                .collect(Collectors.toSet());
+        long runmileTotal = districts.stream()
+                .mapToLong(DistrictAnalyticsResponse::runmileUsed)
+                .sum();
+        long linkedPaymentTotal = districts.stream()
+                .mapToLong(DistrictAnalyticsResponse::linkedPaymentAmount)
+                .sum();
+        return actualNames.equals(expectedNames)
+                && runmileTotal == overview.runmileUsed()
+                && linkedPaymentTotal == overview.linkedPaymentAmount();
+    }
+
+    private List<DistrictAnalyticsResponse> createDemoDistricts(
+            AnalyticsOverviewResponse overview
+    ) {
+        List<Long> runmileAmounts = allocate(overview.runmileUsed());
+        List<Long> linkedPaymentAmounts = allocate(overview.linkedPaymentAmount());
+        List<DistrictAnalyticsResponse> result = new ArrayList<>();
+
+        for (int index = 0; index < DEMO_DISTRICTS.size(); index++) {
+            DemoDistrict district = DEMO_DISTRICTS.get(index);
+            long runmileAmount = runmileAmounts.get(index);
+            long linkedPaymentAmount = linkedPaymentAmounts.get(index);
+            result.add(new DistrictAnalyticsResponse(
+                    district.name(),
+                    runmileAmount,
+                    linkedPaymentAmount,
+                    linkedPaymentAmount - runmileAmount,
+                    Math.max(1, Math.round(linkedPaymentAmount / 35_000.0)),
+                    district.merchantCount()
+            ));
+        }
+        return result;
+    }
+
+    private List<Long> allocate(long total) {
+        List<Long> amounts = new ArrayList<>();
+        long allocated = 0;
+        for (int index = 0; index < DEMO_DISTRICTS.size(); index++) {
+            long amount = index == DEMO_DISTRICTS.size() - 1
+                    ? total - allocated
+                    : total * DEMO_DISTRICTS.get(index).weight() / TOTAL_WEIGHT;
+            amounts.add(amount);
+            allocated += amount;
+        }
+        return amounts;
+    }
+
     private long sumRunMile(List<Payment> payments) {
         return payments.stream().mapToLong(Payment::getRunmileAmount).sum();
     }
@@ -168,5 +244,8 @@ public class AnalyticsService {
                 "ANALYTICS_NOT_READY",
                 "AI 분석 결과가 아직 적재되지 않았습니다."
         );
+    }
+
+    private record DemoDistrict(String name, int weight, long merchantCount) {
     }
 }
