@@ -27,6 +27,31 @@ def _connect() -> psycopg.Connection:
     )
 
 
+def _required_int(value: object, field: str, context: str) -> int:
+    if pd.isna(value):
+        raise ValueError(f"{context}의 필수값 {field}가 비어 있습니다.")
+    return int(value)
+
+
+def _required_float(value: object, field: str, context: str) -> float:
+    if pd.isna(value):
+        raise ValueError(f"{context}의 필수값 {field}가 비어 있습니다.")
+    return float(value)
+
+
+def _optional_float(value: object) -> float | None:
+    return None if pd.isna(value) else float(value)
+
+
+def _parse_datetime(value: object, field: str, context: str) -> datetime:
+    if pd.isna(value):
+        raise ValueError(f"{context}의 필수값 {field}가 비어 있습니다.")
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError as error:
+        raise ValueError(f"{context}의 {field} 형식이 올바르지 않습니다: {value}") from error
+
+
 def _merchant_rows(merchants: pd.DataFrame) -> list[tuple]:
     rows = []
     for merchant in merchants.itertuples(index=False):
@@ -81,7 +106,7 @@ def _prediction_rows(
 def _policy_effect_rows(effects: pd.DataFrame) -> list[tuple]:
     rows = []
     for row in effects.itertuples(index=False):
-        effect_ratio = None if pd.isna(row.effect_ratio) else float(row.effect_ratio)
+        context = f"정책 효과 {row.scenario}/{row.scope_type}/{row.scope_value}"
         rows.append(
             (
                 row.scenario,
@@ -93,8 +118,8 @@ def _policy_effect_rows(effects: pd.DataFrame) -> list[tuple]:
                 int(row.actual_sales),
                 int(row.predicted_baseline),
                 int(row.estimated_incremental_sales),
-                effect_ratio,
-                datetime.fromisoformat(row.created_at),
+                _optional_float(row.effect_ratio),
+                _parse_datetime(row.created_at, "created_at", context),
             )
         )
     return rows
@@ -104,8 +129,8 @@ def _model_metric_rows(metrics: pd.DataFrame) -> list[tuple]:
     return [
         (
             row.metric_name,
-            float(row.metric_value),
-            datetime.fromisoformat(row.evaluated_at),
+            _required_float(row.metric_value, "metric_value", f"모델 지표 {row.metric_name}"),
+            _parse_datetime(row.evaluated_at, "evaluated_at", f"모델 지표 {row.metric_name}"),
         )
         for row in metrics.itertuples(index=False)
     ]
@@ -115,11 +140,11 @@ def _effect_evaluation_rows(evaluations: pd.DataFrame) -> list[tuple]:
     return [
         (
             row.scenario,
-            int(row.injected_effect),
-            int(row.estimated_effect),
-            int(row.difference),
-            None if pd.isna(row.difference_pct) else float(row.difference_pct),
-            datetime.fromisoformat(row.evaluated_at),
+            _required_int(row.injected_effect, "injected_effect", f"효과 평가 {row.scenario}"),
+            _required_int(row.estimated_effect, "estimated_effect", f"효과 평가 {row.scenario}"),
+            _required_int(row.difference, "difference", f"효과 평가 {row.scenario}"),
+            _optional_float(row.difference_pct),
+            _parse_datetime(row.evaluated_at, "evaluated_at", f"효과 평가 {row.scenario}"),
         )
         for row in evaluations.itertuples(index=False)
     ]
@@ -153,6 +178,8 @@ def load_results_to_postgres() -> None:
     effects = pd.read_csv(RESULTS_DIR / "policy_effects.csv")
     model_metrics = pd.read_csv(RESULTS_DIR / "model_metrics.csv")
     effect_evaluations = pd.read_csv(RESULTS_DIR / "evaluation_report.csv")
+    model_metric_rows = _model_metric_rows(model_metrics)
+    effect_evaluation_rows = _effect_evaluation_rows(effect_evaluations)
 
     with _connect() as connection, connection.cursor() as cursor:
         cursor.executemany(
@@ -228,7 +255,7 @@ def load_results_to_postgres() -> None:
                 metric_value = EXCLUDED.metric_value,
                 evaluated_at = EXCLUDED.evaluated_at
             """,
-            _model_metric_rows(model_metrics),
+            model_metric_rows,
         )
         cursor.executemany(
             """
@@ -243,7 +270,7 @@ def load_results_to_postgres() -> None:
                 difference_pct = EXCLUDED.difference_pct,
                 evaluated_at = EXCLUDED.evaluated_at
             """,
-            _effect_evaluation_rows(effect_evaluations),
+            effect_evaluation_rows,
         )
     print(
         "Loaded "

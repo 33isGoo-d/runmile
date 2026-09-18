@@ -144,6 +144,7 @@ P1:
 
 - real public merchant/event data where legally available
 - weather data
+- AI 평가 지표 추이와 비교 차트 고도화
 - UI polish
 
 P2:
