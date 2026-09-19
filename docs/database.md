@@ -194,13 +194,15 @@ completion 1 : 1 nft_record
 
 UNIQUE 제약으로 동일 참가자 또는 동일 완주 기록에 NFT 기록이 중복 생성되는 것을 방지한다.
 
-Initial state before anchoring:
+Canonical demo state for `RUNNER_00001`:
 
 ```text
-token_id = PENDING-RUNNER-00001
-network = PENDING
-verified = false
+token_id = 0x8dcb81010b85807a05e196317ad1f9181a350984c654b3d621f3f13d3ad63781
+network = POLYGON_AMOY
+verified = true
 ```
+
+This seed is applied only when the runner and completion IDs and all completion payload fields exactly match the values anchored by that transaction. Other records remain `PENDING` until they are anchored separately.
 
 Polygon Amoy mode stores the mined transaction hash in `nft_token_id` and `POLYGON_AMOY` in `network`. The transaction input is a SHA-256 digest bound to the runner and completion record. It does not represent an ERC-721 token ID.
 

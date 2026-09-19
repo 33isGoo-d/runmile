@@ -11,7 +11,7 @@ class CompletionAnchorPayloadTests {
         CompletionAnchorPayload payload = payload(1L, "RUNNER_00001");
 
         assertThat(payload.toHexData())
-                .isEqualTo(payload.toHexData())
+                .isEqualTo("0x22b3a5679fb023dd437cdbf73bdeea63b22ca57b1e1bf8d298a8038f98a04944")
                 .matches("0x[0-9a-f]{64}");
     }
 

@@ -72,6 +72,12 @@ docker compose exec -T postgres psql -U runmile -d runmile \
   < database/migrations/001_ai_evaluation.sql
 docker compose exec -T postgres psql -U runmile -d runmile \
   < database/migrations/002_replace_mock_blockchain_records.sql
+docker compose exec -T postgres psql -U runmile -d runmile \
+  < database/migrations/003_ai_prediction_upsert_constraint.sql
+docker compose exec -T postgres psql -U runmile -d runmile \
+  < database/migrations/004_policy_effect_upsert_constraint.sql
+docker compose exec -T postgres psql -U runmile -d runmile \
+  < database/migrations/005_restore_demo_polygon_proof.sql
 ```
 
 반복 시연 전에 데모 참가자의 RunMile 지급·결제 상태만 초기화하려면 저장소 루트에서 다음 명령을 실행합니다.
@@ -145,7 +151,7 @@ npm run dev
 
 ### 구현 방식
 
-완주 정보로 만든 SHA-256 해시를 Polygon Amoy의 `0 POL` 자기 전송 트랜잭션 input에 기록합니다. 초기 시드의 완주 증명은 `PENDING` 상태이며, 앵커링이 끝나기 전에는 RunMile 지급 자격으로 인정하지 않습니다.
+완주 정보로 만든 SHA-256 해시를 Polygon Amoy의 `0 POL` 자기 전송 트랜잭션 input에 기록합니다. canonical 데모 참가자 `RUNNER_00001`의 초기 시드는 이미 채굴된 실제 Amoy 거래를 사용하며, Backend가 거래와 완주 payload를 다시 검증한 경우에만 RunMile 지급 자격으로 인정합니다. 다른 참가자의 완주 증명은 앵커링 전까지 `PENDING` 상태입니다.
 
 온체인 검증 시 다음 항목을 모두 확인합니다.
 
