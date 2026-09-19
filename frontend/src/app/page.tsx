@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { postApi } from "@/lib/api";
 
 const journey = [
@@ -12,7 +13,22 @@ const journey = [
 ];
 
 export default function HomePage() {
-  useEffect(() => { void postApi("/demo/reset", {}).catch(() => undefined); }, []);
+  const router = useRouter();
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const startDemo = async () => {
+    setResetting(true);
+    setResetError(null);
+    try {
+      await postApi<{ reset: boolean }>("/demo/reset", { confirmation: "RESET" });
+      router.push("/participant");
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : "시연 상태를 초기화하지 못했습니다.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   return (
     <main className="landing-app-shell">
@@ -27,9 +43,13 @@ export default function HomePage() {
         <h1>달린 만큼 혜택으로,<br /><em>RunMile</em></h1>
         <p className="landing-lead">대구마라톤 완주 보상과 지역 가맹점 소비를 잇는 RunMile</p>
 
-        <Link className="landing-primary-action" href="/participant">
-          <span>RunMile 확인</span><b>→</b>
-        </Link>
+        <div className="landing-demo-actions">
+          <button className="landing-primary-action" type="button" disabled={resetting} onClick={startDemo}>
+            <span>{resetting ? "시연 준비 중" : "처음부터 시연하기"}</span><b>→</b>
+          </button>
+          <Link className="landing-continue-action" href="/participant">현재 상태 이어보기</Link>
+          {resetError && <p className="landing-reset-error" role="alert">{resetError}</p>}
+        </div>
         <section className="landing-journey" id="journey" aria-label="RunMile 이용 과정">
           <header><strong>이용 과정</strong><span>STEP 01 · 04</span></header>
           <ol>
