@@ -55,6 +55,12 @@ public class RunMileWallet {
         totalUsed += amount;
     }
 
+    public void resetDemoState() {
+        balance = 0;
+        totalIssued = 0;
+        totalUsed = 0;
+    }
+
     public Long getId() {
         return id;
     }

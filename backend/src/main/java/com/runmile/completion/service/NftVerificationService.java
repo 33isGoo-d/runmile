@@ -8,12 +8,16 @@ import com.runmile.infrastructure.blockchain.BlockchainVerificationPort;
 import com.runmile.infrastructure.blockchain.BlockchainVerificationResult;
 import com.runmile.infrastructure.blockchain.CompletionAnchorPayload;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class NftVerificationService {
     private final NftRecordRepository nftRecordRepository;
     private final BlockchainVerificationPort blockchainVerificationPort;
+
+    @Value("${runmile.demo-completion-proof.enabled:false}")
+    private boolean demoCompletionProofEnabled;
 
     public NftVerificationService(
             NftRecordRepository nftRecordRepository,
@@ -33,6 +37,10 @@ public class NftVerificationService {
 
         if (!nftRecord.isVerified()) {
             return NftVerificationResponse.from(nftRecord, false);
+        }
+
+        if (demoCompletionProofEnabled && "DEMO_MOCK".equals(nftRecord.getNetwork())) {
+            return NftVerificationResponse.from(nftRecord, true);
         }
 
         BlockchainVerificationResult result = blockchainVerificationPort.verify(
