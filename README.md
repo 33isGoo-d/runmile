@@ -295,7 +295,8 @@ pytest
 ```text
 브랜치: <type>/<area>/<issue-number>-<short-title>
 커밋:   <type>(<area>): <한글 요약> (#<issue-number>)
-PR:     <type>(<area>): <한글 요약> (#<issue-number>)
+PR 제목: <type>(<area>): <한글 요약>
+PR 본문: Closes #<issue-number>
 ```
 
 예시:
