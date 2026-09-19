@@ -26,6 +26,8 @@ docker compose exec -T postgres psql -U runmile -d runmile \
   < database/migrations/003_ai_prediction_upsert_constraint.sql
 docker compose exec -T postgres psql -U runmile -d runmile \
   < database/migrations/004_policy_effect_upsert_constraint.sql
+docker compose exec -T postgres psql -U runmile -d runmile \
+  < database/migrations/005_restore_demo_polygon_proof.sql
 ```
 
 새 migration을 추가한 사람은 적용 명령과 순서를 PR 본문에 기록한다.
