@@ -74,6 +74,14 @@ docker compose exec -T postgres psql -U runmile -d runmile \
   < database/migrations/002_replace_mock_blockchain_records.sql
 ```
 
+반복 시연 전에 데모 참가자의 RunMile 지급·결제 상태만 초기화하려면 저장소 루트에서 다음 명령을 실행합니다.
+
+```bash
+RUNMILE_CONFIRM_DEMO_RESET=RESET ./scripts/reset-local-demo.sh
+```
+
+이 명령은 로컬 Docker PostgreSQL 전용입니다. `RUNNER_00001`의 지갑, 거래 내역, 결제만 초기화하며 Polygon Amoy에 기록된 완주 증명과 검증 정보는 유지합니다. 공유·운영 DB에는 실행하지 않습니다.
+
 ### 3. AI 배치 실행
 
 macOS에서는 XGBoost용 OpenMP가 필요합니다.
