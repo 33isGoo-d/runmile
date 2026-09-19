@@ -9,4 +9,6 @@ public interface RunMileTransactionRepository extends JpaRepository<RunMileTrans
     boolean existsByWalletIdAndType(Long walletId, RunMileTransactionType type);
 
     List<RunMileTransaction> findAllByWalletRunnerIdOrderByCreatedAtDesc(Long runnerId);
+
+    void deleteAllByWalletRunnerId(Long runnerId);
 }
