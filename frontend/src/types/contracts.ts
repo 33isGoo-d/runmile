@@ -19,6 +19,11 @@ export type Wallet = {
   totalUsed: number;
 };
 
+export type RunMileIssueResponse = {
+  issuedAmount: number;
+  balance: number;
+};
+
 export type RunMileTransaction = {
   id: number;
   type: RunMileTransactionType;

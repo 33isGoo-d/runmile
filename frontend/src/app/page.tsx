@@ -1,28 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect } from "react";
+import { postApi } from "@/lib/api";
+
+const journey = [
+  { number: "01", title: "완주 인증", description: "대구마라톤 완주 기록과 완주증명 확인" },
+  { number: "02", title: "RunMile 지급", description: "완주 보상 10,000 RunMile" },
+  { number: "03", title: "지역 소비", description: "대구 지역 가맹점 사용" },
+  { number: "04", title: "정책 분석", description: "지역 소비 흐름과 정책 효과" }
+];
 
 export default function HomePage() {
-  const [showHowToUse, setShowHowToUse] = useState(false);
+  useEffect(() => { void postApi("/demo/reset", {}).catch(() => undefined); }, []);
 
   return (
-    <main className="landing-shell">
-      <nav className="topbar" aria-label="주요 메뉴">
+    <main className="landing-app-shell">
+      <header className="landing-app-header app-common-header">
         <Link className="brand" href="/">RUN<span>MILE</span></Link>
-        <span className="demo-pill">2026 대구마라톤</span>
-      </nav>
-      <section className="hero">
-        <h1>완주의 여운이<br /><em>대구의 소비</em>로 이어지도록.</h1>
-        <div className="hero-actions"><Link className="button button-primary" href="/participant">내 RunMile 확인하기 <span>→</span></Link><button className="text-link" type="button" onClick={() => setShowHowToUse((visible) => !visible)} aria-expanded={showHowToUse}>어떻게 이용하나요? {showHowToUse ? "↑" : "↓"}</button></div>
+        <span className="landing-event">2026 대구마라톤</span>
+        <Link className="landing-profile" href="/participant" aria-label="참가자 화면">R</Link>
+      </header>
+
+      <section className="landing-app-content">
+        <div className="landing-kicker"><i /> 완주자 리워드</div>
+        <h1>달린 만큼 혜택으로,<br /><em>RunMile</em></h1>
+        <p className="landing-lead">대구마라톤 완주 보상과 지역 가맹점 소비를 잇는 RunMile</p>
+
+        <Link className="landing-primary-action" href="/participant">
+          <span>RunMile 확인</span><b>→</b>
+        </Link>
+        <section className="landing-journey" id="journey" aria-label="RunMile 이용 과정">
+          <header><strong>이용 과정</strong><span>STEP 01 · 04</span></header>
+          <ol>
+            {journey.map((item) => (
+              <li key={item.number}>
+                <span>{item.number}</span>
+                <div><b>{item.title}</b><small>{item.description}</small></div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <Link className="landing-admin-link" href="/admin">
+          <span className="landing-admin-icon">⌁</span>
+          <span><b>관리자 분석</b><small>지역 소비와 정책 효과</small></span>
+          <strong>›</strong>
+        </Link>
+
+        <aside className="landing-notice">
+          <b>RunMile 안내</b>
+          <p>대구마라톤 완주자 대상 지역소비 인센티브</p>
+        </aside>
       </section>
-      {showHowToUse && <section className="journey-card" id="how-it-works" aria-label="RunMile 이용 과정">
-        <div><span className="journey-number">01</span><strong>완주 인증</strong></div><span className="journey-line" />
-        <div><span className="journey-number">02</span><strong>RunMile 지급</strong></div><span className="journey-line" />
-        <div><span className="journey-number">03</span><strong>가맹점에서 사용</strong></div>
-      </section>}
-      <Link className="admin-fab" href="/admin" aria-label="관리자 정책 분석 대시보드로 이동"><span>▦</span> 관리자 분석</Link>
     </main>
   );
 }
-
