@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.PreDestroy;
 import java.math.BigInteger;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,7 +88,19 @@ public class DaeguChainAdapter implements BlockchainVerificationPort {
             return BlockchainVerificationResult.NOT_VERIFIED;
         }
         String cacheKey = network + ":" + transactionHash.toLowerCase() + ":" + payload.toHexData();
-        return verificationCache.get(cacheKey, ignored -> verifyOnChain(payload, transactionHash));
+        AtomicReference<BlockchainVerificationResult> loaded = new AtomicReference<>();
+        BlockchainVerificationResult result = verificationCache.asMap().compute(cacheKey, (key, cached) -> {
+            if (cached != null) {
+                return cached;
+            }
+            BlockchainVerificationResult verified = verifyOnChain(payload, transactionHash);
+            loaded.set(verified);
+            return verified == BlockchainVerificationResult.UNAVAILABLE ? null : verified;
+        });
+        if (result != null) {
+            return result;
+        }
+        return loaded.get();
     }
 
     private BlockchainVerificationResult verifyOnChain(

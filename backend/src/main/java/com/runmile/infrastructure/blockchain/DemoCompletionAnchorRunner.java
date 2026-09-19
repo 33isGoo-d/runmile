@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -21,6 +22,7 @@ import org.web3j.protocol.core.methods.response.Transaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.RawTransactionManager;
 import org.web3j.tx.response.PollingTransactionReceiptProcessor;
+import org.web3j.tx.response.TransactionReceiptProcessor;
 
 // 시드 완주 기록을 실제 테스트넷에 앵커링하는 로컬 운영 명령이다.
 @Component
@@ -33,6 +35,7 @@ public class DemoCompletionAnchorRunner implements CommandLineRunner {
     private final Web3j web3j;
     private final Credentials credentials;
     private final RawTransactionManager transactionManager;
+    private final TransactionReceiptProcessor receiptProcessor;
     private final String networkName;
     private final long chainId;
     private final String trustedAddress;
@@ -41,6 +44,7 @@ public class DemoCompletionAnchorRunner implements CommandLineRunner {
     private final boolean anchorAll;
     private final String recoveryTransactionHash;
 
+    @Autowired
     public DemoCompletionAnchorRunner(
             NftRecordRepository nftRecordRepository,
             @Value("${daegu-chain.rpc-url}") String rpcUrl,
@@ -108,6 +112,35 @@ public class DemoCompletionAnchorRunner implements CommandLineRunner {
         this.transactionManager = signingCredentials == null
                 ? null
                 : new RawTransactionManager(web3j, signingCredentials, chainId);
+        this.receiptProcessor = new PollingTransactionReceiptProcessor(web3j, 4000, 40);
+    }
+
+    DemoCompletionAnchorRunner(
+            NftRecordRepository nftRecordRepository,
+            Web3j web3j,
+            TransactionReceiptProcessor receiptProcessor,
+            Credentials credentials,
+            RawTransactionManager transactionManager,
+            String networkName,
+            long chainId,
+            String trustedAddress,
+            int minimumConfirmations,
+            Long anchorRunnerId,
+            boolean anchorAll,
+            String recoveryTransactionHash
+    ) {
+        this.nftRecordRepository = nftRecordRepository;
+        this.web3j = web3j;
+        this.receiptProcessor = receiptProcessor;
+        this.credentials = credentials;
+        this.transactionManager = transactionManager;
+        this.networkName = networkName;
+        this.chainId = chainId;
+        this.trustedAddress = trustedAddress;
+        this.minimumConfirmations = minimumConfirmations;
+        this.anchorRunnerId = anchorRunnerId;
+        this.anchorAll = anchorAll;
+        this.recoveryTransactionHash = recoveryTransactionHash;
     }
 
     @Override
@@ -198,8 +231,7 @@ public class DemoCompletionAnchorRunner implements CommandLineRunner {
             String transactionHash,
             boolean saveToDatabase
     ) throws Exception {
-        TransactionReceipt receipt = new PollingTransactionReceiptProcessor(web3j, 4000, 40)
-                .waitForTransactionReceipt(transactionHash);
+        TransactionReceipt receipt = receiptProcessor.waitForTransactionReceipt(transactionHash);
         var transactionResponse = web3j.ethGetTransactionByHash(transactionHash).send();
         if (transactionResponse.hasError()) {
             throw new IllegalStateException(

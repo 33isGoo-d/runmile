@@ -11,6 +11,12 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.Request;
@@ -63,6 +69,55 @@ class DaeguChainAdapterTests {
     }
 
     @Test
+    void 같은_완주_증명의_동시_요청은_RPC를_한_번만_호출한다() throws Exception {
+        CompletionAnchorPayload payload = payload();
+        RpcMocks rpc = rpcMocks();
+        rpc.chainId.setResult("0x13882");
+        rpc.receipt.setResult(receipt("0x1", TRUSTED, TX_HASH));
+        rpc.transaction.setResult(transaction(
+                TRUSTED, TRUSTED, TX_HASH, "0x0", payload.toHexData()));
+        rpc.blockNumber.setResult("0x64");
+
+        CountDownLatch firstRpcStarted = new CountDownLatch(1);
+        CountDownLatch releaseFirstRpc = new CountDownLatch(1);
+        CountDownLatch secondRequestStarted = new CountDownLatch(1);
+        CountDownLatch duplicateRpcStarted = new CountDownLatch(1);
+        AtomicInteger rpcCalls = new AtomicInteger();
+        when(rpc.chainRequest.send()).thenAnswer(invocation -> {
+            if (rpcCalls.incrementAndGet() == 1) {
+                firstRpcStarted.countDown();
+                releaseFirstRpc.await(2, TimeUnit.SECONDS);
+            } else {
+                duplicateRpcStarted.countDown();
+            }
+            return rpc.chainId;
+        });
+
+        DaeguChainAdapter adapter = adapter(rpc.web3j);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<BlockchainVerificationResult> first = executor.submit(
+                    () -> adapter.verify(payload, TX_HASH, "POLYGON_AMOY"));
+            assertThat(firstRpcStarted.await(1, TimeUnit.SECONDS)).isTrue();
+
+            Future<BlockchainVerificationResult> second = executor.submit(() -> {
+                secondRequestStarted.countDown();
+                return adapter.verify(payload, TX_HASH, "POLYGON_AMOY");
+            });
+            assertThat(secondRequestStarted.await(1, TimeUnit.SECONDS)).isTrue();
+            assertThat(duplicateRpcStarted.await(250, TimeUnit.MILLISECONDS)).isFalse();
+
+            releaseFirstRpc.countDown();
+            assertThat(first.get(2, TimeUnit.SECONDS)).isEqualTo(BlockchainVerificationResult.VERIFIED);
+            assertThat(second.get(2, TimeUnit.SECONDS)).isEqualTo(BlockchainVerificationResult.VERIFIED);
+            verify(rpc.web3j, times(1)).ethChainId();
+        } finally {
+            releaseFirstRpc.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void RPC_체인_ID가_다르면_일시적_사용불가로_처리한다() throws Exception {
         RpcMocks rpc = rpcMocks();
         rpc.chainId.setResult("0x1");
@@ -83,6 +138,28 @@ class DaeguChainAdapterTests {
                 .verify(payload(), TX_HASH, "POLYGON_AMOY");
 
         assertThat(result).isEqualTo(BlockchainVerificationResult.UNAVAILABLE);
+    }
+
+    @Test
+    void 일시적_RPC_장애는_캐시하지_않아_복구_즉시_다시_검증한다() throws Exception {
+        CompletionAnchorPayload payload = payload();
+        RpcMocks rpc = rpcMocks();
+        rpc.chainId.setResult("0x13882");
+        rpc.receipt.setError(new Response.Error(-32000, "rpc error"));
+        DaeguChainAdapter adapter = adapter(rpc.web3j);
+
+        assertThat(adapter.verify(payload, TX_HASH, "POLYGON_AMOY"))
+                .isEqualTo(BlockchainVerificationResult.UNAVAILABLE);
+
+        rpc.receipt.setError(null);
+        rpc.receipt.setResult(receipt("0x1", TRUSTED, TX_HASH));
+        rpc.transaction.setResult(transaction(
+                TRUSTED, TRUSTED, TX_HASH, "0x0", payload.toHexData()));
+        rpc.blockNumber.setResult("0x64");
+
+        assertThat(adapter.verify(payload, TX_HASH, "POLYGON_AMOY"))
+                .isEqualTo(BlockchainVerificationResult.VERIFIED);
+        verify(rpc.web3j, times(2)).ethChainId();
     }
 
     @Test
@@ -269,11 +346,12 @@ class DaeguChainAdapterTests {
         when(transactionRequest.send()).thenReturn(transaction);
         when(blockNumberRequest.send()).thenReturn(blockNumber);
 
-        return new RpcMocks(web3j, chainId, receipt, transaction, blockNumber);
+        return new RpcMocks(web3j, chainRequest, chainId, receipt, transaction, blockNumber);
     }
 
     private record RpcMocks(
             Web3j web3j,
+            Request<?, EthChainId> chainRequest,
             EthChainId chainId,
             EthGetTransactionReceipt receipt,
             EthTransaction transaction,
