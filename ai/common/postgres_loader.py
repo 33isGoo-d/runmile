@@ -270,6 +270,12 @@ def load_results_to_postgres() -> None:
             """,
             _merchant_rows(merchants),
         )
+        # Seed data can have explicit IDs while PostgreSQL's sequence still
+        # points below them. Advance it before later inserts use the sequence.
+        cursor.execute(
+            "SELECT setval(pg_get_serial_sequence('merchant', 'id'), "
+            "COALESCE((SELECT MAX(id) FROM merchant), 1), true)"
+        )
         merchant_ids = _load_merchant_ids(cursor, merchants)
         cursor.executemany(
             """
