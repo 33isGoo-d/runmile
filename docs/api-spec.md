@@ -475,7 +475,21 @@ Response:
 배치를 아직 실행하지 않은 경우 `baseline`은 `null`, `effects`는 빈 배열이다.
 원시 ground truth는 응답하거나 운영 DB에 저장하지 않으며, 시나리오별 집계 검증값만 제공한다.
 
-## 16. Common Enum Values
+## 16. Health
+
+### GET `/health`
+
+Returns the backend process status without querying PostgreSQL or the blockchain network.
+
+Response:
+
+```json
+{
+  "status": "UP"
+}
+```
+
+## 17. Common Enum Values
 
 ### Course
 
