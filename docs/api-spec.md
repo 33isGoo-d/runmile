@@ -489,7 +489,37 @@ Response:
 }
 ```
 
-## 17. Common Enum Values
+## 17. Demo Reset
+
+### POST `/demo/reset`
+
+Resets the wallet, RunMile transactions, and payments for `RUNNER_00001` so a controlled demonstration can start again. The completion record and Polygon Amoy proof are preserved.
+
+The endpoint is unavailable by default. It is registered only when the backend starts with:
+
+```text
+RUNMILE_DEMO_RESET_ENABLED=true
+```
+
+Request:
+
+```json
+{
+  "confirmation": "RESET"
+}
+```
+
+Response:
+
+```json
+{
+  "reset": true
+}
+```
+
+Do not enable this endpoint for an ordinary production environment. It exists only for a controlled prototype demonstration.
+
+## 18. Common Enum Values
 
 ### Course
 
