@@ -40,6 +40,12 @@ export default function ParticipantPage() {
   const runmileAmount = Math.min(wallet?.balance ?? 0, 10_000, totalAmount);
   const availableSteps = useMemo(() => verification !== "VERIFIED" ? ["VERIFY"] : rewardReceived ? ["VERIFY", "REWARD", "MERCHANT", "PAYMENT"] : ["VERIFY", "REWARD"], [verification, rewardReceived]);
 
+  const selectMerchant = (merchant: Merchant) => {
+    setSelectedMerchant(merchant);
+    setPayment(null);
+    setMessage(null);
+  };
+
   const refreshWallet = async () => {
     const [nextWallet, nextTransactions] = await Promise.all([getApi<Wallet>(`/runners/${RUNNER_ID}/wallet`), getApi<RunMileTransaction[]>(`/runners/${RUNNER_ID}/runmile/transactions`)]);
     setWallet(nextWallet); setTransactions(nextTransactions);
@@ -61,7 +67,7 @@ export default function ParticipantPage() {
     setVerification("CHECKING"); setMessage(null);
     try {
       const [nextCompletion, nextNft, nextMerchants] = await Promise.all([getApi<Completion>(`/runners/${RUNNER_ID}/completion`), getApi<NftRecord>(`/runners/${RUNNER_ID}/nft`), getApi<Merchant[]>("/merchants?runmileEnabled=true")]);
-      setCompletion(nextCompletion); setNft(nextNft); setMerchants(nextMerchants); setSelectedMerchant(nextMerchants[0] ?? null); await refreshWallet();
+      setCompletion(nextCompletion); setNft(nextNft); setMerchants(nextMerchants); setSelectedMerchant(nextMerchants[0] ?? null); setPayment(null); await refreshWallet();
       const verified = nextCompletion.completed && nextNft.verified;
       setVerification(verified ? "VERIFIED" : "PENDING");
     } catch (error) { setVerification("ERROR"); setMessage(error instanceof Error ? error.message : "완주증명 확인 실패"); }
@@ -97,7 +103,7 @@ export default function ParticipantPage() {
 
         {stage === "MERCHANT" && <><StageHeading step="03" label="사용처 선택" title={<>RunMile 사용처</>} copy="지역 가맹점 선택" />
           <div className="participant-view-tabs"><button className={merchantView === "LIST" ? "active" : ""} type="button" onClick={() => setMerchantView("LIST")}>목록</button><button className={merchantView === "MAP" ? "active" : ""} type="button" onClick={() => setMerchantView("MAP")}>지도</button></div>
-          {merchantView === "MAP" ? <KakaoMerchantMap merchants={merchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={setSelectedMerchant} /> : <div className="participant-merchant-list">{merchants.map((merchant, index) => <button type="button" key={merchant.id} className={selectedMerchant?.id === merchant.id ? "selected" : ""} onClick={() => setSelectedMerchant(merchant)}><span className="merchant-icon">{["☕", "◒", "◇"][index % 3]}</span><span><small>{merchantCategoryLabel[merchant.category]}</small><b>{merchant.name}</b><em>{merchant.district} · {merchant.address}</em></span><strong>{selectedMerchant?.id === merchant.id ? "✓" : "+"}</strong></button>)}</div>}
+          {merchantView === "MAP" ? <KakaoMerchantMap merchants={merchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={selectMerchant} /> : <div className="participant-merchant-list">{merchants.map((merchant, index) => <button type="button" key={merchant.id} className={selectedMerchant?.id === merchant.id ? "selected" : ""} onClick={() => selectMerchant(merchant)}><span className="merchant-icon">{["☕", "◒", "◇"][index % 3]}</span><span><small>{merchantCategoryLabel[merchant.category]}</small><b>{merchant.name}</b><em>{merchant.district} · {merchant.address}</em></span><strong>{selectedMerchant?.id === merchant.id ? "✓" : "+"}</strong></button>)}</div>}
           <button className="participant-primary" type="button" disabled={!selectedMerchant} onClick={() => setStage("PAYMENT")}>결제 확인 <span>→</span></button>
         </>}
 
