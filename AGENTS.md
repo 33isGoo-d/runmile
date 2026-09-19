@@ -89,4 +89,7 @@ RunMile Impact Dashboard
 
 ## Integration Honesty
 
-Use `MockDaeguChainAdapter` and `MockDaeguPayAdapter`. Do not claim that real Daegu Chain, Daegu-ro Pay, iM Bank, or financial data integration is complete.
+- Use `DaeguChainAdapter` only for the documented Polygon Amoy testnet completion-proof anchor and verification flow.
+- Use `MockDaeguPayAdapter` for payments.
+- Do not claim that Polygon Amoy is the real Daegu Chain or that real Daegu Chain, Daegu-ro Pay, iM Bank, or financial data integration is complete.
+- Do not describe the completion-proof transaction as an ERC-721 NFT or smart-contract mint.
