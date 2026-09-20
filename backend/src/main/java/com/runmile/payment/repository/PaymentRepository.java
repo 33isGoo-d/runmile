@@ -10,5 +10,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @EntityGraph(attributePaths = "merchant")
     List<Payment> findAllByStatusAndRunmileAmountGreaterThan(PaymentStatus status, long runmileAmount);
 
+    @EntityGraph(attributePaths = "merchant")
+    List<Payment> findAllByRunnerIdOrderByPaidAtDesc(Long runnerId);
+
     void deleteAllByRunnerId(Long runnerId);
 }

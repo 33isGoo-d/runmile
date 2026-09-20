@@ -46,10 +46,13 @@ export type Merchant = {
 
 export type Payment = {
   paymentId: number;
+  merchantId: number;
+  merchantName: string;
   totalAmount: number;
   runmileAmount: number;
   personalAmount: number;
   status: PaymentStatus;
+  paidAt: string;
 };
 
 export type AnalyticsOverview = {
