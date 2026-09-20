@@ -64,7 +64,6 @@ export default function ParticipantPage() {
       setSelectedMerchant(restoredMerchant);
       setPayment(latestPayment);
       setVerification(nextCompletion.completed && nextNft.verified ? "VERIFIED" : "PENDING");
-      if (latestPayment) setStage("PAYMENT");
     } catch (error) {
       setVerification("ERROR");
       setMessage(error instanceof Error ? error.message : "참가자 이용 상태를 불러오지 못했습니다.");
