@@ -26,7 +26,7 @@ RunMile은 암호화폐나 신규 지역화폐가 아닙니다. 대구로페이 
 
 | 영역 | 기술 |
 |---|---|
-| Frontend | Node.js 26.8.2, npm 12.0.2, Next.js 16.3.5, React 19.3.0, TypeScript 5.5.3, Tailwind CSS 3.4.4 |
+| Frontend | Node.js 24.x, npm 12.0.2, Next.js 16.3.5, React 19.3.0, TypeScript 5.5.3, Tailwind CSS 3.4.4 |
 | Backend | Java 17, Gradle Wrapper 8.10.2, Spring Boot 3.3.2, Spring Data JPA |
 | Database | PostgreSQL 16, Docker Compose |
 | AI/Data | Python 3.12.14, Pandas 2.2.2, NumPy 2.0.0, scikit-learn 1.5.1, XGBoost 2.1.0 |
