@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { postApi } from "@/lib/api";
+import { postApi, RunMileApiError } from "@/lib/api";
 
 const journey = [
   { number: "01", title: "완주 인증", description: "대구마라톤 완주 기록과 완주증명 확인" },
@@ -24,6 +24,10 @@ export default function HomePage() {
       await postApi<{ reset: boolean }>("/demo/reset", { confirmation: "RESET" });
       router.push("/participant");
     } catch (error) {
+      if (error instanceof RunMileApiError && error.status === 404) {
+        router.push("/participant");
+        return;
+      }
       setResetError(error instanceof Error ? error.message : "시연 상태를 초기화하지 못했습니다.");
     } finally {
       setResetting(false);
@@ -45,7 +49,7 @@ export default function HomePage() {
 
         <div className="landing-demo-actions">
           <button className="landing-primary-action" type="button" disabled={resetting} onClick={startDemo}>
-            <span>{resetting ? "시연 준비 중" : "처음부터 시연하기"}</span><b>→</b>
+            <span>{resetting ? "시연 준비 중" : "시연 시작하기"}</span><b>→</b>
           </button>
           <Link className="landing-continue-action" href="/participant">현재 상태 이어보기</Link>
           {resetError && <p className="landing-reset-error" role="alert">{resetError}</p>}
