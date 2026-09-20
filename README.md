@@ -88,13 +88,14 @@ RUNMILE_CONFIRM_DEMO_RESET=RESET ./scripts/reset-local-demo.sh
 
 이 명령은 로컬 Docker PostgreSQL 전용입니다. `RUNNER_00001`의 지갑, 거래 내역, 결제만 초기화하며 Polygon Amoy에 기록된 완주 증명과 검증 정보는 유지합니다. 공유·운영 DB에는 실행하지 않습니다.
 
-웹 화면의 **처음부터 시연하기** 기능을 사용할 통제된 데모 환경에서는 Backend에 다음 환경변수를 설정합니다.
+웹 화면의 **시연 시작하기** 버튼으로 지급·결제 상태까지 초기화할 통제된 데모 환경에서는 Backend에 다음 환경변수를 설정합니다.
 
 ```bash
 RUNMILE_DEMO_RESET_ENABLED=true
 ```
 
 기본값은 `false`이며, 일반 운영 환경에서는 활성화하지 않습니다. 이 기능도 지갑·거래·결제만 초기화하고 실제 Polygon Amoy 완주 증명은 그대로 보존합니다.
+초기화 API가 비활성화된 환경에서 **시연 시작하기**를 누르면 데이터를 삭제하지 않고 현재 참가자 상태로 이동합니다.
 
 ### 3. AI 배치 실행
 

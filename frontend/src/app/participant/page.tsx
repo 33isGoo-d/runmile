@@ -98,6 +98,14 @@ export default function ParticipantPage() {
     setMessage(null);
   };
 
+  const changeMerchantFilter = (category: MerchantFilter) => {
+    setMerchantFilter(category);
+    if (category !== "ALL" && selectedMerchant?.category !== category) {
+      setSelectedMerchant(null);
+      setPayment(null);
+    }
+  };
+
   const refreshWallet = async () => {
     const [nextWallet, nextTransactions] = await Promise.all([getApi<Wallet>(`/runners/${RUNNER_ID}/wallet`), getApi<RunMileTransaction[]>(`/runners/${RUNNER_ID}/runmile/transactions`)]);
     setWallet(nextWallet); setTransactions(nextTransactions);
@@ -148,17 +156,17 @@ export default function ParticipantPage() {
           {verification === "CHECKING" && <><VerificationCycle checking /><p className="participant-status">완주증명 확인 진행</p></>}
           {verification === "PENDING" && <div className="participant-state"><b>완주증명 등록 대기</b><p>완주증명 등록 후 재확인</p><button className="participant-secondary" type="button" onClick={verifyCompletion}>재확인</button></div>}
           {verification === "ERROR" && <div className="participant-state"><b>완주증명 확인 실패</b><button className="participant-secondary" type="button" onClick={verifyCompletion}>재시도</button></div>}
-          {verification === "VERIFIED" && <div className="participant-proof-pass"><header><span>인증 완료</span><b>체인 검증 완료</b></header><dl><div><dt>완주 기록</dt><dd>{completion?.course === "FULL" ? "풀코스 완주" : `${completion?.course} 완주`}{completion ? ` · ${formatFinishTime(completion.finishTimeSeconds)}` : ""}</dd></div><div><dt>검증 네트워크</dt><dd>{nft?.network}</dd></div><div><dt>거래 증명</dt><dd>{nft?.tokenId}</dd></div></dl>{nft?.tokenId && <a className="participant-proof-link" href={polygonExplorerUrl(nft.network, nft.tokenId)} target="_blank" rel="noreferrer">블록체인 거래 확인</a>}<button className="participant-primary" type="button" onClick={() => setStage("REWARD")}>마일리지 지급 진행 <span>→</span></button></div>}
+          {verification === "VERIFIED" && <div className="participant-proof-pass"><header><span>완주 인증 완료</span><b>체인 검증 완료</b></header><div className="participant-finisher"><small>2026 DAEGU MARATHON</small><div><strong>FINISHER</strong><b>{courseDistance(completion?.course)} km</b></div><p>{courseLabel(completion?.course)} · {completion ? formatFinishTime(completion.finishTimeSeconds) : "기록 확인 중"}{completion ? ` · ${formatCompletionDate(completion.completedAt)}` : ""}</p></div><dl><div><dt>참가자</dt><dd>{runner?.runnerCode}</dd></div><div><dt>검증 네트워크</dt><dd>{nft?.network}</dd></div><div><dt>거래 증명</dt><dd title={nft?.tokenId}>{nft?.tokenId}</dd></div></dl>{nft?.tokenId && <a className="participant-proof-link" href={polygonExplorerUrl(nft.network, nft.tokenId)} target="_blank" rel="noreferrer">블록체인 거래 확인</a>}<button className="participant-primary" type="button" onClick={() => setStage("REWARD")}>완주 보상 받기 <span>→</span></button></div>}
         </>}
 
         {stage === "REWARD" && <><StageHeading step="02" label="RunMile 지급" title={<>완주 보상<br />RunMile</>} copy="지급 가능 완주 보상" />
-          <div className="participant-reward-card"><span>완주 보상</span><strong>10,000 <small>RunMile</small></strong><p>대구 지역 가맹점 사용</p></div>
-          {rewardReceived ? <div className="participant-wallet-card"><b>RunMile 지급 완료</b><strong>{wallet?.balance.toLocaleString("ko-KR")} RunMile</strong><button className="participant-dark-action" type="button" onClick={() => setStage("MERCHANT")}>사용처 선택 <span>→</span></button></div> : <button className="participant-primary" type="button" disabled={issuing} onClick={issueReward}>{issuing ? "지급 처리" : "RunMile 지급"}</button>}
+          <div className="participant-reward-card"><span>2026 대구마라톤 {courseLabel(completion?.course)} 보상</span><strong>10,000 <small>RunMile</small></strong><p>완주의 성취를 대구 지역 소비로 연결</p></div>
+          {rewardReceived ? <div className="participant-wallet-card"><b>완주 보상 지급 완료</b><dl><div><dt>누적 지급</dt><dd>{(wallet?.totalIssued ?? 0).toLocaleString("ko-KR")} RunMile</dd></div><div><dt>사용</dt><dd>{(wallet?.totalUsed ?? 0).toLocaleString("ko-KR")} RunMile</dd></div><div className="wallet-balance"><dt>현재 잔액</dt><dd>{(wallet?.balance ?? 0).toLocaleString("ko-KR")} RunMile</dd></div></dl><button className="participant-dark-action" type="button" onClick={() => setStage(payment ? "PAYMENT" : "MERCHANT")}>{payment ? "결제 내역 확인" : "사용처 선택"} <span>→</span></button></div> : <button className="participant-primary" type="button" disabled={issuing} onClick={issueReward}>{issuing ? "지급 처리" : "RunMile 지급"}</button>}
         </>}
 
         {stage === "MERCHANT" && <><StageHeading step="03" label="사용처 선택" title={<>RunMile 사용처</>} copy="지역 가맹점 선택" />
           <div className="participant-view-tabs"><button className={merchantView === "LIST" ? "active" : ""} type="button" onClick={() => setMerchantView("LIST")}>목록</button><button className={merchantView === "MAP" ? "active" : ""} type="button" onClick={() => setMerchantView("MAP")}>지도</button></div>
-          <div className="participant-merchant-filters" aria-label="가맹점 카테고리">{(["ALL", "RESTAURANT", "CAFE", "RETAIL"] as MerchantFilter[]).map((category) => <button key={category} type="button" className={merchantFilter === category ? "active" : ""} onClick={() => setMerchantFilter(category)}>{category === "ALL" ? "전체" : merchantCategoryLabel[category]}</button>)}</div>
+          <div className="participant-merchant-filters" aria-label="가맹점 카테고리">{(["ALL", "RESTAURANT", "CAFE", "RETAIL"] as MerchantFilter[]).map((category) => <button key={category} type="button" className={merchantFilter === category ? "active" : ""} onClick={() => changeMerchantFilter(category)}>{category === "ALL" ? "전체" : merchantCategoryLabel[category]}</button>)}</div>
           <p className="participant-merchant-count">사용 가능한 가맹점 {visibleMerchants.length}곳</p>
           {merchantView === "MAP" ? <KakaoMerchantMap merchants={visibleMerchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={selectMerchant} /> : <div className="participant-merchant-list">{visibleMerchants.map((merchant, index) => <button type="button" key={merchant.id} className={selectedMerchant?.id === merchant.id ? "selected" : ""} onClick={() => selectMerchant(merchant)}><span className="merchant-icon">{["☕", "◒", "◇"][index % 3]}</span><span><small>{merchantCategoryLabel[merchant.category]}</small><b>{merchant.name}</b><em>{merchant.district} · {merchant.address}</em></span><strong>{selectedMerchant?.id === merchant.id ? "✓" : "+"}</strong></button>)}</div>}
           {selectedMerchant && <div className="participant-selected-merchant"><span>선택한 사용처</span><b>{selectedMerchant.name}</b><strong>{formatWon(totalAmount)}</strong></div>}
@@ -181,6 +189,24 @@ function formatFinishTime(totalSeconds: number) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+function courseLabel(course?: Completion["course"]) {
+  if (course === "FULL") return "풀코스 완주";
+  if (course === "TEN_K") return "10km 완주";
+  if (course === "FIVE_K") return "5km 완주";
+  return "완주 기록";
+}
+
+function courseDistance(course?: Completion["course"]) {
+  if (course === "FULL") return "42.195";
+  if (course === "TEN_K") return "10";
+  if (course === "FIVE_K") return "5";
+  return "-";
+}
+
+function formatCompletionDate(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" }).format(new Date(value));
 }
 
 function formatPaidAt(value: string) {

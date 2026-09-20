@@ -14,8 +14,10 @@ interface KakaoLatLngBounds {
   extend(position: KakaoLatLng): void;
 }
 interface KakaoMapInstance {
+  getLevel(): number;
   panTo(position: KakaoLatLng): void;
   setBounds(bounds: KakaoLatLngBounds): void;
+  setLevel(level: number, options?: { anchor?: KakaoLatLng }): void;
 }
 interface KakaoInfoWindow {
   close(): void;
@@ -36,6 +38,7 @@ interface KakaoMaps {
     map: KakaoMapInstance;
     averageCenter: boolean;
     minLevel: number;
+    styles?: Array<Record<string, string>>;
   }) => KakaoMarkerClusterer;
   event: {
     addListener(target: KakaoMarker, event: "click", handler: () => void): void;
@@ -111,6 +114,7 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
   const clustererRef = useRef<KakaoMarkerClusterer | null>(null);
   const infoWindowRef = useRef<KakaoInfoWindow | null>(null);
   const markersRef = useRef<Map<number, MarkerEntry>>(new Map());
+  const onSelectRef = useRef(onSelect);
   const initialMerchantsRef = useRef(merchants);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +123,14 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
     () => merchants.filter((merchant) => merchant.latitude != null && merchant.longitude != null),
     [merchants]
   );
+  const selectedMerchant = useMemo(
+    () => mappedMerchants.find((merchant) => merchant.id === selectedMerchantId) ?? null,
+    [mappedMerchants, selectedMerchantId]
+  );
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   useEffect(() => {
     let active = true;
@@ -144,7 +156,20 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
         clustererRef.current = new maps.MarkerClusterer({
           map: mapRef.current,
           averageCenter: true,
-          minLevel: 6
+          minLevel: 6,
+          styles: [{
+            width: "42px",
+            height: "42px",
+            border: "3px solid rgba(255,255,255,.92)",
+            borderRadius: "50%",
+            background: "rgba(196,59,50,.9)",
+            boxShadow: "0 3px 10px rgba(11,28,48,.24)",
+            color: "#fff",
+            fontSize: "12px",
+            fontWeight: "800",
+            lineHeight: "36px",
+            textAlign: "center"
+          }]
         });
       }
       setReady(true);
@@ -193,7 +218,19 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
         position,
         title: merchant.name
       });
-      const clickHandler = () => onSelect(merchant);
+      const clickHandler = () => {
+        infoWindowRef.current?.close();
+        const infoWindow = new maps.InfoWindow({
+          content: createInfoContent(merchant),
+          removable: false
+        });
+        infoWindow.open(map, marker);
+        infoWindowRef.current = infoWindow;
+        marker.setOpacity(1);
+        marker.setZIndex(10);
+        map.panTo(position);
+        onSelectRef.current(merchant);
+      };
       maps.event.addListener(marker, "click", clickHandler);
       marker.setOpacity(0.82);
       markersRef.current.set(merchant.id, { marker, position, clickHandler });
@@ -203,7 +240,7 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
 
     clustererRef.current?.addMarkers(nextMarkers);
     map.setBounds(bounds);
-  }, [mappedMerchants, onSelect, ready]);
+  }, [mappedMerchants, ready]);
 
   useEffect(() => {
     const maps = mapsRef.current;
@@ -218,10 +255,10 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
     infoWindowRef.current = null;
 
     if (selectedMerchantId == null) return;
-    const selectedMerchant = mappedMerchants.find((merchant) => merchant.id === selectedMerchantId);
     const selectedEntry = markersRef.current.get(selectedMerchantId);
     if (!selectedMerchant || !selectedEntry) return;
 
+    if (map.getLevel() > 4) map.setLevel(4, { anchor: selectedEntry.position });
     selectedEntry.marker.setOpacity(1);
     selectedEntry.marker.setZIndex(10);
     const infoWindow = new maps.InfoWindow({
@@ -239,6 +276,8 @@ export default function KakaoMerchantMap({ merchants, selectedMerchantId, onSele
     <div ref={containerRef} className="merchant-map" aria-label="RunMile 사용처 지도" />
     {error && <div className="map-fallback">{error}</div>}
     {!error && noLocations && <div className="map-fallback">위치가 등록된 사용처가 없습니다.</div>}
-    {!error && !noLocations && <span className="map-count">지도에 {mappedMerchants.length.toLocaleString("ko-KR")}곳 표시</span>}
+    {!error && !noLocations && <div className="map-legend"><span><i />개별 가맹점</span><span><i />주변 가맹점 묶음</span></div>}
+    {!error && selectedMerchant && <div className="map-selection"><span>결제 대상</span><b>{selectedMerchant.name}</b><strong>{formatWon(merchantSuggestedAmount(selectedMerchant))}</strong></div>}
+    {!error && !noLocations && <span className="map-count">{mappedMerchants.length.toLocaleString("ko-KR")}곳 표시</span>}
   </div>;
 }
