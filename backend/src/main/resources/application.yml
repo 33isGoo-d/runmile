@@ -2,7 +2,7 @@ spring:
   application:
     name: runmile-backend
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:runmile}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:runmile}?sslmode=${POSTGRES_SSL_MODE:disable}
     username: ${POSTGRES_USER:runmile}
     password: ${POSTGRES_PASSWORD:runmile_dev_password}
     hikari:
@@ -20,6 +20,8 @@ server:
   port: ${PORT:8080}
 
 runmile:
+  cors:
+    allowed-origins: ${FRONTEND_ORIGINS:http://localhost:3000}
   demo-reset:
     enabled: ${RUNMILE_DEMO_RESET_ENABLED:false}
 

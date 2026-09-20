@@ -139,6 +139,8 @@ NEXT_PUBLIC_KAKAO_MAP_API_KEY=카카오맵_JavaScript_키
 
 카카오 개발자 콘솔의 카카오맵 제품 설정과 Web 플랫폼 도메인도 등록해야 합니다. 로컬 주소는 일반적으로 `http://localhost:3000`입니다.
 
+배포 환경에서는 Backend에 `FRONTEND_ORIGINS=https://프론트엔드주소`를 설정합니다. Preview 주소 등 여러 출처가 필요하면 쉼표로 구분합니다. Neon을 사용할 때는 `POSTGRES_SSL_MODE=require`를 설정하고, Frontend의 `NEXT_PUBLIC_API_BASE_URL`에는 Render Backend의 HTTPS 주소와 `/api/v1`을 포함합니다. `NEXT_PUBLIC_` 환경변수를 변경한 뒤에는 Frontend를 다시 빌드·배포해야 합니다.
+
 ```bash
 cd frontend
 npm install
