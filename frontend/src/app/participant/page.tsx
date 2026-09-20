@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import KakaoMerchantMap from "@/components/KakaoMerchantMap";
 import { getApi, postApi, RunMileApiError } from "@/lib/api";
 import { formatWon, merchantCategoryLabel, merchantSuggestedAmount } from "@/lib/presentation";
-import type { Completion, Merchant, NftRecord, Payment, Runner, RunMileIssueResponse, RunMileTransaction, Wallet } from "@/types/contracts";
+import type { Completion, Merchant, MerchantCategory, NftRecord, Payment, Runner, RunMileIssueResponse, RunMileTransaction, Wallet } from "@/types/contracts";
 
 const RUNNER_ID = 1;
 type Stage = "VERIFY" | "REWARD" | "MERCHANT" | "PAYMENT";
 type VerificationStatus = "IDLE" | "CHECKING" | "VERIFIED" | "PENDING" | "ERROR";
+type MerchantFilter = "ALL" | MerchantCategory;
 const steps: Array<{ key: Stage; label: string; note: string }> = [
   { key: "VERIFY", label: "완주 인증", note: "완주증명" },
   { key: "REWARD", label: "RunMile 지급", note: "완주 보상" },
@@ -33,12 +34,63 @@ export default function ParticipantPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [issuing, setIssuing] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [merchantFilter, setMerchantFilter] = useState<MerchantFilter>("ALL");
 
-  useEffect(() => { void getApi<Runner>(`/runners/${RUNNER_ID}`).then(setRunner).catch(() => setMessage("참가자 정보 불러오기 실패")); }, []);
+  const loadParticipantState = useCallback(async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const [nextRunner, nextCompletion, nextNft, nextWallet, nextTransactions, nextMerchants, nextPayments] = await Promise.all([
+        getApi<Runner>(`/runners/${RUNNER_ID}`),
+        getApi<Completion>(`/runners/${RUNNER_ID}/completion`),
+        getApi<NftRecord>(`/runners/${RUNNER_ID}/nft`),
+        getApi<Wallet>(`/runners/${RUNNER_ID}/wallet`),
+        getApi<RunMileTransaction[]>(`/runners/${RUNNER_ID}/runmile/transactions`),
+        getApi<Merchant[]>("/merchants?runmileEnabled=true"),
+        getApi<Payment[]>(`/runners/${RUNNER_ID}/payments`)
+      ]);
+      const latestPayment = nextPayments.find((item) => item.status === "SUCCESS") ?? null;
+      const restoredMerchant = latestPayment
+        ? nextMerchants.find((merchant) => merchant.id === latestPayment.merchantId) ?? null
+        : null;
+
+      setRunner(nextRunner);
+      setCompletion(nextCompletion);
+      setNft(nextNft);
+      setWallet(nextWallet);
+      setTransactions(nextTransactions);
+      setMerchants(nextMerchants);
+      setSelectedMerchant(restoredMerchant);
+      setPayment(latestPayment);
+      setVerification(nextCompletion.completed && nextNft.verified ? "VERIFIED" : "PENDING");
+      if (latestPayment) setStage("PAYMENT");
+    } catch (error) {
+      setVerification("ERROR");
+      setMessage(error instanceof Error ? error.message : "참가자 이용 상태를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadParticipantState(); }, [loadParticipantState]);
   const rewardReceived = transactions.some((transaction) => transaction.type === "ISSUE");
   const totalAmount = selectedMerchant ? merchantSuggestedAmount(selectedMerchant) : 0;
   const runmileAmount = Math.min(wallet?.balance ?? 0, 10_000, totalAmount);
-  const availableSteps = useMemo(() => verification !== "VERIFIED" ? ["VERIFY"] : rewardReceived ? ["VERIFY", "REWARD", "MERCHANT", "PAYMENT"] : ["VERIFY", "REWARD"], [verification, rewardReceived]);
+  const displayedTotalAmount = payment?.totalAmount ?? totalAmount;
+  const displayedRunmileAmount = payment?.runmileAmount ?? runmileAmount;
+  const displayedPersonalAmount = payment?.personalAmount ?? totalAmount - runmileAmount;
+  const availableSteps = useMemo(() => {
+    if (verification !== "VERIFIED") return ["VERIFY"];
+    if (!rewardReceived) return ["VERIFY", "REWARD"];
+    return selectedMerchant || payment
+      ? ["VERIFY", "REWARD", "MERCHANT", "PAYMENT"]
+      : ["VERIFY", "REWARD", "MERCHANT"];
+  }, [verification, rewardReceived, selectedMerchant, payment]);
+  const visibleMerchants = useMemo(
+    () => merchantFilter === "ALL" ? merchants : merchants.filter((merchant) => merchant.category === merchantFilter),
+    [merchantFilter, merchants]
+  );
 
   const selectMerchant = (merchant: Merchant) => {
     setSelectedMerchant(merchant);
@@ -66,8 +118,8 @@ export default function ParticipantPage() {
   const verifyCompletion = async () => {
     setVerification("CHECKING"); setMessage(null);
     try {
-      const [nextCompletion, nextNft, nextMerchants] = await Promise.all([getApi<Completion>(`/runners/${RUNNER_ID}/completion`), getApi<NftRecord>(`/runners/${RUNNER_ID}/nft`), getApi<Merchant[]>("/merchants?runmileEnabled=true")]);
-      setCompletion(nextCompletion); setNft(nextNft); setMerchants(nextMerchants); setSelectedMerchant(nextMerchants[0] ?? null); setPayment(null); await refreshWallet();
+      const [nextCompletion, nextNft] = await Promise.all([getApi<Completion>(`/runners/${RUNNER_ID}/completion`), getApi<NftRecord>(`/runners/${RUNNER_ID}/nft`)]);
+      setCompletion(nextCompletion); setNft(nextNft); await refreshWallet();
       const verified = nextCompletion.completed && nextNft.verified;
       setVerification(verified ? "VERIFIED" : "PENDING");
     } catch (error) { setVerification("ERROR"); setMessage(error instanceof Error ? error.message : "완주증명 확인 실패"); }
@@ -84,16 +136,19 @@ export default function ParticipantPage() {
       <Link className="brand" href="/">RUN<span>MILE</span></Link><span className="participant-event">2026 대구마라톤</span><span className="participant-runner">{runner?.runnerCode ?? "RUNNER_00001"}</span>
     </header>
     <section className="participant-app-content">
-      <nav className="participant-stepper" aria-label="RunMile 이용 단계">{steps.map((item, index) => <button key={item.key} type="button" disabled={!availableSteps.includes(item.key)} className={stage === item.key ? "active" : ""} onClick={() => setStage(item.key)}><span>{String(index + 1).padStart(2, "0")}</span><b>{item.label}</b><small>{item.note}</small></button>)}</nav>
+      <nav className="participant-stepper" aria-label="RunMile 이용 단계">{steps.map((item, index) => <button key={item.key} type="button" disabled={loading || !availableSteps.includes(item.key)} aria-current={stage === item.key ? "step" : undefined} className={stage === item.key ? "active" : ""} onClick={() => setStage(item.key)}><span>{String(index + 1).padStart(2, "0")}</span><b>{item.label}</b><small>{item.note}</small></button>)}</nav>
       {message && <p className="participant-app-message" role="alert">{message}</p>}
 
       <section className={`participant-stage-card stage-${stage.toLowerCase()}`}>
+        {loading && <div className="participant-loading" aria-live="polite"><span /><b>참가자 이용 상태를 불러오는 중</b><p>완주증명, RunMile, 결제 기록을 확인하고 있습니다.</p></div>}
+        {!loading && message && verification === "ERROR" && <div className="participant-state"><b>이용 상태를 불러오지 못했습니다.</b><p>서버 연결을 확인한 뒤 다시 시도해 주세요.</p><button className="participant-secondary" type="button" onClick={() => void loadParticipantState()}>다시 불러오기</button></div>}
+        {!loading && !(message && verification === "ERROR") && <>
         {stage === "VERIFY" && <><StageHeading step="01" label="완주 인증" title={<>대구마라톤<br />완주 인증</>} copy="완주 기록과 완주증명 확인" />
-          {verification === "IDLE" && <><VerificationCycle /><button className="participant-primary" type="button" onClick={verifyCompletion}>완주 NFT 인증</button></>}
+          {verification === "IDLE" && <><VerificationCycle /><button className="participant-primary" type="button" onClick={verifyCompletion}>완주증명 확인</button></>}
           {verification === "CHECKING" && <><VerificationCycle checking /><p className="participant-status">완주증명 확인 진행</p></>}
           {verification === "PENDING" && <div className="participant-state"><b>완주증명 등록 대기</b><p>완주증명 등록 후 재확인</p><button className="participant-secondary" type="button" onClick={verifyCompletion}>재확인</button></div>}
           {verification === "ERROR" && <div className="participant-state"><b>완주증명 확인 실패</b><button className="participant-secondary" type="button" onClick={verifyCompletion}>재시도</button></div>}
-          {verification === "VERIFIED" && <div className="participant-proof-pass"><header><span>✓ 인증 완료</span><b>VALIDATED</b></header><dl><div><dt>완주 기록</dt><dd>{completion?.course === "FULL" ? "풀코스 완주 기록" : `${completion?.course} 완주 기록`}</dd></div><div><dt>완주증명 ID</dt><dd>{nft?.tokenId}</dd></div></dl><button className="participant-primary" type="button" onClick={() => setStage("REWARD")}>마일리지 지급 진행 <span>→</span></button></div>}
+          {verification === "VERIFIED" && <div className="participant-proof-pass"><header><span>인증 완료</span><b>체인 검증 완료</b></header><dl><div><dt>완주 기록</dt><dd>{completion?.course === "FULL" ? "풀코스 완주" : `${completion?.course} 완주`}{completion ? ` · ${formatFinishTime(completion.finishTimeSeconds)}` : ""}</dd></div><div><dt>검증 네트워크</dt><dd>{nft?.network}</dd></div><div><dt>거래 증명</dt><dd>{nft?.tokenId}</dd></div></dl>{nft?.tokenId && <a className="participant-proof-link" href={polygonExplorerUrl(nft.network, nft.tokenId)} target="_blank" rel="noreferrer">블록체인 거래 확인</a>}<button className="participant-primary" type="button" onClick={() => setStage("REWARD")}>마일리지 지급 진행 <span>→</span></button></div>}
         </>}
 
         {stage === "REWARD" && <><StageHeading step="02" label="RunMile 지급" title={<>완주 보상<br />RunMile</>} copy="지급 가능 완주 보상" />
@@ -103,18 +158,38 @@ export default function ParticipantPage() {
 
         {stage === "MERCHANT" && <><StageHeading step="03" label="사용처 선택" title={<>RunMile 사용처</>} copy="지역 가맹점 선택" />
           <div className="participant-view-tabs"><button className={merchantView === "LIST" ? "active" : ""} type="button" onClick={() => setMerchantView("LIST")}>목록</button><button className={merchantView === "MAP" ? "active" : ""} type="button" onClick={() => setMerchantView("MAP")}>지도</button></div>
-          {merchantView === "MAP" ? <KakaoMerchantMap merchants={merchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={selectMerchant} /> : <div className="participant-merchant-list">{merchants.map((merchant, index) => <button type="button" key={merchant.id} className={selectedMerchant?.id === merchant.id ? "selected" : ""} onClick={() => selectMerchant(merchant)}><span className="merchant-icon">{["☕", "◒", "◇"][index % 3]}</span><span><small>{merchantCategoryLabel[merchant.category]}</small><b>{merchant.name}</b><em>{merchant.district} · {merchant.address}</em></span><strong>{selectedMerchant?.id === merchant.id ? "✓" : "+"}</strong></button>)}</div>}
+          <div className="participant-merchant-filters" aria-label="가맹점 카테고리">{(["ALL", "RESTAURANT", "CAFE", "RETAIL"] as MerchantFilter[]).map((category) => <button key={category} type="button" className={merchantFilter === category ? "active" : ""} onClick={() => setMerchantFilter(category)}>{category === "ALL" ? "전체" : merchantCategoryLabel[category]}</button>)}</div>
+          <p className="participant-merchant-count">사용 가능한 가맹점 {visibleMerchants.length}곳</p>
+          {merchantView === "MAP" ? <KakaoMerchantMap merchants={visibleMerchants} selectedMerchantId={selectedMerchant?.id ?? null} onSelect={selectMerchant} /> : <div className="participant-merchant-list">{visibleMerchants.map((merchant, index) => <button type="button" key={merchant.id} className={selectedMerchant?.id === merchant.id ? "selected" : ""} onClick={() => selectMerchant(merchant)}><span className="merchant-icon">{["☕", "◒", "◇"][index % 3]}</span><span><small>{merchantCategoryLabel[merchant.category]}</small><b>{merchant.name}</b><em>{merchant.district} · {merchant.address}</em></span><strong>{selectedMerchant?.id === merchant.id ? "✓" : "+"}</strong></button>)}</div>}
+          {selectedMerchant && <div className="participant-selected-merchant"><span>선택한 사용처</span><b>{selectedMerchant.name}</b><strong>{formatWon(totalAmount)}</strong></div>}
           <button className="participant-primary" type="button" disabled={!selectedMerchant} onClick={() => setStage("PAYMENT")}>결제 확인 <span>→</span></button>
         </>}
 
         {stage === "PAYMENT" && <><StageHeading step="04" label="결제 확인" title={<>결제 금액<br />확인</>} copy="RunMile 사용과 개인 결제" />
-          <div className="participant-payment-card"><header><span>가맹점</span><b>{selectedMerchant?.name}</b></header><dl><div><dt>총 결제 금액</dt><dd>{formatWon(totalAmount)}</dd></div><div className="runmile-row"><dt>RunMile 사용</dt><dd>- {runmileAmount.toLocaleString("ko-KR")} RunMile</dd></div><div className="personal-row"><dt>개인 결제</dt><dd>{formatWon(totalAmount - runmileAmount)}</dd></div></dl></div>
-          {payment ? <><div className="participant-receipt"><b>결제 완료</b><span>{formatWon(payment.totalAmount)} · RunMile {payment.runmileAmount.toLocaleString("ko-KR")}</span></div><Link className="participant-admin-link" href="/admin">관리자 분석 <span>→</span></Link></> : <button className="participant-primary" type="button" disabled={paying || !selectedMerchant} onClick={createPayment}>{paying ? "결제 처리" : `${formatWon(totalAmount)} 결제`} </button>}
+          <div className="participant-payment-card"><header><span>가맹점</span><b>{payment?.merchantName ?? selectedMerchant?.name}</b></header><dl><div><dt>총 결제 금액</dt><dd>{formatWon(displayedTotalAmount)}</dd></div><div className="runmile-row"><dt>RunMile 사용</dt><dd>- {displayedRunmileAmount.toLocaleString("ko-KR")} RunMile</dd></div><div className="personal-row"><dt>개인 결제</dt><dd>{formatWon(displayedPersonalAmount)}</dd></div></dl></div>
+          {payment ? <><div className="participant-receipt"><b>결제 완료</b><span>{payment.merchantName} · {formatWon(payment.totalAmount)}</span><span>RunMile {payment.runmileAmount.toLocaleString("ko-KR")} 사용 · 개인 결제 {formatWon(payment.personalAmount)}</span><small>{formatPaidAt(payment.paidAt)} · 결제번호 {payment.paymentId}</small></div><Link className="participant-admin-link" href="/admin">관리자 분석 <span>→</span></Link></> : <button className="participant-primary" type="button" disabled={paying || !selectedMerchant} onClick={createPayment}>{paying ? "결제 처리" : `${formatWon(totalAmount)} 결제`} </button>}
           {transactions.length > 0 && <div className="participant-ledger"><b>최근 RunMile 이용 내역</b>{transactions.slice(0, 3).map((item) => <span key={item.id}>{item.type === "ISSUE" ? "+" : "-"}{item.amount.toLocaleString("ko-KR")} RunMile</span>)}</div>}
+        </>}
         </>}
       </section>
     </section>
   </main>;
+}
+
+function formatFinishTime(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+function formatPaidAt(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function polygonExplorerUrl(network: string, transactionHash: string) {
+  const host = network === "POLYGON_AMOY" ? "https://amoy.polygonscan.com" : "https://polygonscan.com";
+  return `${host}/tx/${transactionHash}`;
 }
 
 function StageHeading({ step, label, title, copy }: { step: string; label: string; title: ReactNode; copy: string }) {

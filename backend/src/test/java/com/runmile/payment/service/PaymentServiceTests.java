@@ -23,6 +23,7 @@ import com.runmile.wallet.domain.RunMileTransaction;
 import com.runmile.wallet.domain.RunMileWallet;
 import com.runmile.wallet.repository.RunMileTransactionRepository;
 import com.runmile.wallet.repository.RunMileWalletRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,6 +72,9 @@ class PaymentServiceTests {
                 .thenReturn(new PaymentApproval(PaymentStatus.SUCCESS));
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
         when(payment.getId()).thenReturn(100L);
+        when(payment.getMerchant()).thenReturn(merchant);
+        when(merchant.getId()).thenReturn(10L);
+        when(merchant.getName()).thenReturn("RunMile 식당");
         when(payment.getTotalAmount()).thenReturn(35_000L);
         when(payment.getRunmileAmount()).thenReturn(10_000L);
         when(payment.getPersonalAmount()).thenReturn(25_000L);
@@ -80,13 +84,38 @@ class PaymentServiceTests {
 
         assertThat(response).isEqualTo(new PaymentResponse(
                 100L,
+                10L,
+                "RunMile 식당",
                 35_000L,
                 10_000L,
                 25_000L,
-                PaymentStatus.SUCCESS
+                PaymentStatus.SUCCESS,
+                null
         ));
         verify(wallet).use(10_000L);
         verify(transactionRepository).save(any(RunMileTransaction.class));
+    }
+
+    @Test
+    void 참가자의_결제_이력을_최신순으로_조회한다() {
+        Payment payment = mock(Payment.class);
+        Merchant merchant = mock(Merchant.class);
+        when(runnerRepository.existsById(1L)).thenReturn(true);
+        when(paymentRepository.findAllByRunnerIdOrderByPaidAtDesc(1L)).thenReturn(List.of(payment));
+        when(payment.getMerchant()).thenReturn(merchant);
+        when(payment.getId()).thenReturn(100L);
+        when(merchant.getId()).thenReturn(10L);
+        when(merchant.getName()).thenReturn("RunMile 식당");
+        when(payment.getTotalAmount()).thenReturn(35_000L);
+        when(payment.getRunmileAmount()).thenReturn(10_000L);
+        when(payment.getPersonalAmount()).thenReturn(25_000L);
+        when(payment.getStatus()).thenReturn(PaymentStatus.SUCCESS);
+
+        List<PaymentResponse> result = paymentService.getPayments(1L);
+
+        assertThat(result).containsExactly(new PaymentResponse(
+                100L, 10L, "RunMile 식당", 35_000L, 10_000L, 25_000L, PaymentStatus.SUCCESS, null
+        ));
     }
 
     @Test

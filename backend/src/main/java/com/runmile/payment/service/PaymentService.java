@@ -16,6 +16,7 @@ import com.runmile.wallet.domain.RunMileTransaction;
 import com.runmile.wallet.domain.RunMileWallet;
 import com.runmile.wallet.repository.RunMileTransactionRepository;
 import com.runmile.wallet.repository.RunMileWalletRepository;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,6 +109,16 @@ public class PaymentService {
             ));
         }
         return PaymentResponse.from(payment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentResponse> getPayments(Long runnerId) {
+        if (!runnerRepository.existsById(runnerId)) {
+            throw notFound("RUNNER_NOT_FOUND", "참가자를 찾을 수 없습니다.");
+        }
+        return paymentRepository.findAllByRunnerIdOrderByPaidAtDesc(runnerId).stream()
+                .map(PaymentResponse::from)
+                .toList();
     }
 
     private ApiException notFound(String code, String message) {

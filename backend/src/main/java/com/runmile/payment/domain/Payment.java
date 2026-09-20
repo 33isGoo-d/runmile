@@ -108,4 +108,8 @@ public class Payment {
     public PaymentStatus getStatus() {
         return status;
     }
+
+    public Instant getPaidAt() {
+        return paidAt;
+    }
 }

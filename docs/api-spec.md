@@ -224,6 +224,27 @@ Response:
 
 ## 9. Payment
 
+### GET `/runners/{runnerId}/payments`
+
+참가자의 결제 이력을 최신순으로 반환합니다. 결제 이력이 없으면 `[]`를 반환합니다.
+
+Response:
+
+```json
+[
+  {
+    "paymentId": 100,
+    "merchantId": 10,
+    "merchantName": "RunMile 식당",
+    "totalAmount": 35000,
+    "runmileAmount": 10000,
+    "personalAmount": 25000,
+    "status": "SUCCESS",
+    "paidAt": "2026-09-20T10:30:00Z"
+  }
+]
+```
+
 ### POST `/payments`
 
 Creates a payment that can include RunMile.
@@ -269,10 +290,13 @@ Response:
 ```json
 {
   "paymentId": 100,
+  "merchantId": 10,
+  "merchantName": "RunMile 식당",
   "totalAmount": 35000,
   "runmileAmount": 10000,
   "personalAmount": 25000,
-  "status": "SUCCESS"
+  "status": "SUCCESS",
+  "paidAt": "2026-09-20T10:30:00Z"
 }
 ```
 
